@@ -35,7 +35,9 @@ if [ "${enable_tclkit}" = "1" ]; then
 	fi
 fi
 cat <<EOF > Makefile
-all: bin/coind bin/wallet bin/tkwallet
+all: bin bin/coind bin/wallet bin/tkwallet
+bin:
+	mkdir -p bin
 bin/coind:
 	${with_tclsh} util/staticlink.tcl src/coind.tcl bin/coind
 	chmod +x bin/coind
