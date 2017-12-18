@@ -40,7 +40,7 @@ cat <<EOF > Makefile
 all: bin bin/coind bin/wallet bin/tkwallet
 bin:
 	mkdir -p bin
-bin/coind:
+bin/coind: \$(wildcard src/*.tcl)
 	${with_tclsh} util/staticlink.tcl src/coind.tcl bin/coind
 	chmod +x bin/coind
 bin/wallet:
