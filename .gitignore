@@ -1,0 +1,5 @@
+Makefile
+bin/*
+*.wallet
+internal_work
+
