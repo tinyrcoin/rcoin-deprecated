@@ -48,6 +48,12 @@ proc warn {msg} {
 }
 set NETCFGUTIL "ifconfig"
 if { $tcl_platform(platform) eq "windows" } { set NETCFGUTIL "ipconfig" }
+ proc getIp {{target www.google.com} {port 80}} {
+     set s [socket $target $port]
+     set res [fconfigure $s -sockname]
+     close $s
+     lindex $res 0
+ }
 namespace eval protocol {
 	variable bc
 	variable behind 0
@@ -63,9 +69,9 @@ namespace eval protocol {
 		set protocol::bc $chain
 		set protocol::meport $port
 		socket -server protocol::_newpeer $port
-		set isnat [string match "*$protocol::meip*" [exec $::NETCFGUTIL]]
+		set isnat [expr ![string match "*$protocol::meip*" [exec $::NETCFGUTIL]]]
 		if {$isnat} {
-			set isnat [catch {upnpc -r $port tcp}]
+			set isnat [catch {exec upnpc -r $port tcp}]
 		}
 		foreach {addr port} [$chain eval {SELECT * FROM peers}] {
 			after 1 [list ::protocol::addpeer $addr $port]
@@ -75,7 +81,9 @@ namespace eval protocol {
 	proc addpeer {ip port} {
 		if {[catch {
 		set new [socket $ip $port]}] && $ip eq $protocol::meip } { set new [socket 127.0.0.1 $port] }
+		catch {
 		_newpeer $new $ip 0
+		}
 	}
 	proc _broadcast msg {
 		foreach {k v} [array get protocol::peers] {

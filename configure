@@ -1,11 +1,12 @@
 #!/bin/sh
 export with_tclsh=tclsh
+export with_upnpc=upnpc
 for k in "$@"; do
 	export $(expr substr $k 3 512 | sed 's/-/_/g')
 done
 if [ "$1" = "--help" ]; then
 cat <<EOF
-Usage: $0 ?--with-tclsh=/path/to/tclsh? ?--enable-tclkit=1 --with-sdx=/path/to/sdx.kit?
+Usage: $0 ?--with-tclsh=/path/to/tclsh? ?--enable-tclkit=1 --with-sdx=/path/to/sdx.kit? ?--with-upnpc=/path/to/upnpc?
 
 Configure configures TinyrCoin to run on different platforms.
 EOF
@@ -24,6 +25,7 @@ checkpkg() {
 	printf 'exit [catch {package require %s %s}]' $1 $2 | ${with_tclsh} && echo "found" || fail "$1 not found"
 }
 checkbin tclsh "${with_tclsh}" || exit 1
+checkbin upnpc
 checkpkg pki 0.6 || exit 1
 checkpkg Tk 8.6
 checkpkg sqlite3 "" || exit 1
