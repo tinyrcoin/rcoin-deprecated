@@ -46,8 +46,11 @@ namespace eval misc {
 proc warn {msg} {
 	puts stderr "Warning: $msg"
 }
+set NETCFGUTIL "ifconfig"
+if { $tcl_platform(platform) eq "windows" } { set NETCFGUTIL "ipconfig" }
 namespace eval protocol {
 	variable bc
+	variable behind 0
 	variable unclaimed
 	variable peers
 	variable irctoks
@@ -55,11 +58,15 @@ namespace eval protocol {
 	variable isnat 0
 	variable menick "*"
 	variable meip [lindex [http::data [http::geturl http://ipv4.icanhazip.com]] 0]
-	variable ircbootstrap {irc://localhost/#coinstrap}
+	variable ircbootstrap {irc://localhost/#coinstrap irc://irc.umbrellix.net/#coinstrap}
 	proc init {chain {port 30009}} {
 		set protocol::bc $chain
 		set protocol::meport $port
 		socket -server protocol::_newpeer $port
+		set isnat [string match "*$protocol::meip*" [exec $::NETCFGUTIL]]
+		if {$isnat} {
+			set isnat [catch {upnpc -r $port tcp}]
+		}
 		foreach {addr port} [$chain eval {SELECT * FROM peers}] {
 			after 1 [list ::protocol::addpeer $addr $port]
 		} 
@@ -128,7 +135,11 @@ namespace eval protocol {
 					}
 				}
 			}
+			height {
+				if {$arg1 > $protocol::behind} {set protocol::behind $arg1}
+			}
 			sync {
+				puts $sock "height [chain::height $bc]"
 				$bc eval {SELECT * FROM blocks WHERE seq > $arg1} values {
 					puts $sock [list trans [chain::encodeblock [list $values(seq) $values(hash) $values(time) $values(lasthash) $values(idfrom) $values(idto) $values(amount) $values(signature)]]]
 					update

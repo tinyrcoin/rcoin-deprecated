@@ -39,6 +39,7 @@ proc httpd {sock addr port} {
 			reply $sock 200 text/plain
 			puts $sock "BlockchainHeight:[chain::height bc]"
 			puts $sock "Peers:[llength [array names protocol::peers]]"
+			puts $sock "Difficulty:[chain::calcdiff bc [chain::height bc]]"
 		}
 		/balance {
 			reply $sock 200 text/plain
@@ -71,5 +72,17 @@ log info "Loading blockchain"
 # do not change or your blockchain will become corrupt
 set creator {308201a53082010ea003020102020101300d06092a864886f70d0101050500300e310c300a060355040313036b6579301e170d3730303130313030303030315a170d3432313231323231313731325a300e310c300a060355040313036b657930819f300d06092a864886f70d010101050003818d0030818902818100b46916773961caf09a735b3783e7eabc004b6c5a02ed2cd0b1647993e028e58f265801854fc6dfaab316d87875a96547e16573a353f201c5b3ec4a6331270ab2a6895785d4bcdd38bb2f98aeac0d302e171ce3767d22c3791d0106442dbebe90e93047d601fbd01d995ec00a2b6dda933e52b05a9e40a40052460fde54eb51b50203010001a3133011300f0603551d130101ff040530030101ff300d06092a864886f70d010105050003818100b3040aceb28add24d0d8ac453a3e5a6995853f7c1f4a2a2dd25e3954c26973880ddb3426ec2e54eda66fbb2b6430ee4e7b1117d280e18e3d959396c54deb59c18ff5e18b654372d240936af88a35c36971e459a4561d0fea2090daec6056825d2871007de1d017627df36121a85a89f35787e034847743f2c002485ae9600c32}
 chain::open bc $creator $opts(-b)
+log info "Loaded blockchain: height: [chain::height bc] blocks"
 protocol::init bc $opts(-p)
+if {$protocol::isnat} {
+	log warning "You're behind a NAT without UPnP"
+	log warning "If at all possible, please forward inbound port $opts(-p) to your computer."
+	log warning "Being behind a NAT heavily limits your peering possibilities"
+}
+log info "Connecting to worldwide peer network"
+after 2500 {
+log info "Connected to worldwide peer network: [llength [array names protocol::peers]] peers"
+log info "I am $protocol::behind blocks behind"
+log info "My current network difficulty: [chain::calcdiff bc [chain::height bc]]"
+}
 vwait exit
