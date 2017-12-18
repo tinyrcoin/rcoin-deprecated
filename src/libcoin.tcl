@@ -71,7 +71,7 @@ namespace eval protocol {
 		socket -server protocol::_newpeer $port
 		set isnat [expr ![string match "*$protocol::meip*" [exec $::NETCFGUTIL]]]
 		if {$isnat} {
-			set isnat [catch {exec upnpc -r $port tcp 1>@stderr 2>@stderr}]
+			set isnat [catch {exec upnpc -r $port tcp >@stderr 2>@stderr}]
 		}
 		foreach {addr port} [$chain eval {SELECT * FROM peers}] {
 			after 1 [list ::protocol::addpeer $addr $port]
