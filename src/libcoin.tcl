@@ -81,7 +81,7 @@ namespace eval protocol {
 	proc addpeer {ip port} {
 		if {[catch {
 		set new [socket $ip $port]}] && $ip eq $protocol::meip } { set new [socket 127.0.0.1 $port] }
-		catch {
+		if { [info exists new] } {
 		_newpeer $new $ip 0
 		}
 	}
