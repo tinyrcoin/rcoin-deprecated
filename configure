@@ -1,0 +1,12 @@
+#!/bin/sh
+fail() { echo "failed"; exit 1; }
+printf "Looking for Go compiler..."
+which go || fail
+printf "Checking version..."
+go version || fail
+
+if [ "$(go version | grep windows)" != "" ]; then
+	echo "EXE ?= .exe" > config.mk
+else
+	echo "EXE ?= " > config.mk
+fi

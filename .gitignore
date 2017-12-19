@@ -1,5 +1,4 @@
-Makefile
 bin/*
 *.wallet
 internal_work
-
+config.mk
