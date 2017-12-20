@@ -80,6 +80,13 @@ var BirthdayBlock = &Block{
 	nil,
 	0,
 }
+func (b *Block) Verify() bool {
+	osig := b.Signature
+	b.Signature = make([]byte, 64)
+	ret := ed25519.Verify([]byte(b.RewardTo), b.Encode(), b.Signature)
+	b.Signature = osig
+	return ret
+}
 func (b *Block) Sign(key ed25519.PrivateKey) {
 	b.RewardTo = Address(key[32:])
 	b.Signature = make([]byte, 64)
@@ -107,7 +114,7 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 		b2.Hash = null64
 		b2.Hash = HashBytes(b2.Encode())
 		hashes++
-		if b2.ValidPoW(difficulty) { break }
+		if b2.VerifyPoW(difficulty) { break }
 		b2.Nonce++
 		if finished { return }
 	}
@@ -128,7 +135,7 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 
 }
 var MAXUINT512 = new(big.Int).Exp(big.NewInt(2), big.NewInt(512), big.NewInt(0))
-func (b *Block) ValidPoW(difficulty int) bool {
+func (b *Block) VerifyPoW(difficulty int) bool {
 	threshold := new(big.Int).Div(MAXUINT512, big.NewInt(int64(difficulty)))
 	if new(big.Int).SetBytes(b.Hash).Cmp(threshold) <= 0 { return true }
 	return false
@@ -155,3 +162,4 @@ func NewBlock() *Block {
 	b.TX = make([]Transaction, 0, 32)
 	return b
 }
+

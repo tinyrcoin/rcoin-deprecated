@@ -10,6 +10,7 @@ type ChainCache struct {
 type Chain struct {
 	DB *leveldb.DB
 	Cache ChainCache
+	LastDifficulty int
 }
 func OpenChain(path string) (*Chain, error) {
 	c := new(Chain)
@@ -31,12 +32,26 @@ func (c *Chain) AddBlock(b *Block) {
 	c.AddRawBlock(b.Encode())
 }
 func (c *Chain) GetRawBlock(id int64) []byte {
-	d, _ := db.Get([]byte(fmt.Sprintf("block%d", id)), nil)
+	d, _ := c.DB.Get([]byte(fmt.Sprintf("block%d", id)), nil)
 	return d
 }
 func (c *Chain) GetBlock(id int64) *Block {
 	r, _ := DecodeBlock(c.GetRawBlock(id))
 	return r
+}
+func (c *Chain) GetDifficulty() int {
+	if c.Height() <= 2 {
+		c.LastDifficulty = 1000
+		return 1000
+	}
+	blk := c.GetBlock(c.Height() - 1)
+	blk2 := c.GetBlock(c.Height() - 2)
+	if (blk.Time - blk2.Time) < 300 {
+		c.LastDifficulty = int((c.LastDifficulty/int(blk.Time - blk2.Time))*600)
+	} else {
+		c.LastDifficulty = int((c.LastDifficulty/int(blk.Time - blk2.Time))*300)
+	}
+	return c.LastDifficulty
 }
 func (c *Chain) HashToBlockNum(hash []byte) int64 {
 	if _, ok := c.Cache.hashes[string(hash)]; !ok {
@@ -44,7 +59,7 @@ func (c *Chain) HashToBlockNum(hash []byte) int64 {
 		id := int64(0)
 		for iter.Next() {
 			b, _ := DecodeBlock(iter.Value())
-			if b.Hash == hash {
+			if string(b.Hash) == string(hash) {
 				c.Cache.hashes[string(hash)] = id
 				goto done
 			}
@@ -61,11 +76,16 @@ func (c *Chain) Verify(b *Block) bool {
 	if !b.Verify() {
 		return false
 	}
+	if !b.VerifyPoW(c.GetDifficulty()) {
+		return false
+	}
 	if c.HashToBlockNum(b.LastHash) == -1 {
 		return false
 	}
-	if c.GetBalance(b.From) < b.Amount {
+	for _, v := range b.TX {
+	if c.GetBalance(v.From) < v.Amount {
 		return false
+	}
 	}
 	return true
 }
