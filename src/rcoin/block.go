@@ -13,6 +13,15 @@ func init() {
 		blk.ProofOfWork(10000,2)
 		fmt.Printf("%x\n", blk.Hash)
 	}
+	tests["verify"] = func() {
+		blk := NewBlock()
+		trs := NewTransaction()
+		blk.AddTransaction(trs)
+		pub, priv, _ := ed25519.GenerateKey(nil)
+		trs.Sign(priv)
+		println(trs.Verify())
+		_ = pub
+	}
 }
 func (a Address) String() string {
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(a)
@@ -29,7 +38,6 @@ type Transaction struct {
 	To Address
 	Signature Address
 	Amount int64
-	Fee int64
 }
 func (t *Transaction) Encode() []byte {
 	ret, _ := msgpack.Marshal(t)
@@ -39,6 +47,13 @@ func (t *Transaction) Sign(key ed25519.PrivateKey) {
 	t.From = Address(key[32:])
 	t.Signature = make([]byte, 64)
 	t.Signature = ed25519.Sign(key, t.Encode())
+}
+func (t *Transaction) Verify() bool {
+	sig := t.Signature
+	t.Signature = make([]byte, 64)
+	ret := ed25519.Verify([]byte(t.From), t.Encode(), sig)
+	t.Signature = sig
+	return ret
 }
 func NewTransaction() (t *Transaction) {
 	t = new(Transaction)
