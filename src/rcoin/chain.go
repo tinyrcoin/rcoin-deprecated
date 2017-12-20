@@ -102,10 +102,10 @@ func (c *Chain) GetBalance(a Address) int64 {
 	iter := c.DB.NewIterator(util.BytesPrefix([]byte("block")), nil)
 	for iter.Next() {
 		blk, _ := DecodeBlock(iter.Value())
-		fees := int64(10 + len(blk.TX))
+		fees := int64(10 + len(blk.TX)) // not technically a fee since the sender doesn't pay anything
 		for _, v := range blk.TX {
 			if a.Equals(v.From) {
-				ret -= v.Amount + 1
+				ret -= v.Amount
 			}
 			if a.Equals(v.To) {
 				ret += v.Amount
