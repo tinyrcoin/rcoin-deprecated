@@ -1,80 +1,53 @@
 package main
+import "encoding/base32"
+import "github.com/vmihailenco/msgpack"
 import "golang.org/x/crypto/ed25519"
-import "encoding/binary"
-import "fmt"
-import "time"
-type Block struct {
-	Signature []byte
-	Hash []byte
-	LastHash []byte
-	To []byte
-	From []byte
-	Amount int64
-	Time int64
+type Address []byte
+
+func (a Address) String() string {
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(a)
 }
-func NewBlock() *Block {
-	ret := new(Block)
-	ret.Signature = make([]byte, 64)
-	ret.Hash = make([]byte, 64)
-	ret.LastHash = make([]byte, 64)
-	ret.To = make([]byte, 64)
-	ret.From = make([]byte, 64)
-	ret.Amount = 0
-	ret.Time = 0
-	return ret
+type Transaction struct {
+	From Address
+	To Address
+	Signature Address
+	Amount int64
+}
+type Block struct {
+	LastHash []byte
+	Hash []byte
+	Nonce int64
+	RewardTo Address
+	Signature Address
+	TX []Transaction
 }
 func (b *Block) Sign(key ed25519.PrivateKey) {
-	copy(b.From, key[32:])
-	copy(b.Signature, ed25519.Sign(key, b.Encode(false)))
-}
-const BLOCK_FMT = `Block
-  Signature data: %x
-  Hash: %x
-  Hash of previous block: %x
-  To: %x
-  From: %x
-  Amount: RCN %d
-  Time: %s
-`
-func (b *Block) String() string {
-	return fmt.Sprintf(BLOCK_FMT, b.Signature, b.Hash, b.LastHash, b.To, b.From, b.Amount, time.Unix(b.Time, 0).String())
+	b.Signature = make([]byte, 64)
+	b.Signature = ed25519.Sign(key, b.Encode())
 }
 func (b *Block) SetHash() {
-	empty := make([]byte, 64)
-	copy(b.Signature, empty)
-	copy(b.Hash, empty)
-	hash := HashBytes(b.Encode(false))
-	copy(b.Hash, hash)
+	osig := b.Signature
+	b.Hash = make([]byte, 64)
+	b.Signature = make([]byte, 64)
+	ret := HashBytes(b.Encode())
+	b.Signature = osig
+	b.Hash = ret
 }
-func (b *Block) HashSign(key ed25519.PrivateKey) {
-	b.SetHash()
-	b.Sign(key)
-}
-func (b *Block) Verify() bool {
-	ok := ed25519.Verify(b.From[:32], b.Encode(false), b.Signature)
-	return ok
-}
-func (b *Block) Encode(full bool) []byte {
-	out := make([]byte, 64+64+64+64+64+8+8)
-	if full {
-	copy(out, b.Signature)
+func (b *Block) ProofOfWork(difficulty int) {
+	b.Hash = make([]byte, 64)
+	b.Signature = make([]byte, 64)
+	b.Nonce = 0
+	for {
+		b.Nonce++
 	}
-	copy(out[64:], b.Hash)
-	copy(out[128:], b.LastHash)
-	copy(out[192:], b.To)
-	copy(out[256:], b.From)
-	binary.LittleEndian.PutUint64(out[320:], uint64(b.Amount))
-	binary.LittleEndian.PutUint64(out[328:], uint64(b.Time))
-	return out
 }
-func BlockDecode(raw []byte) *Block {
-	out := NewBlock()
-	copy(out.Signature, raw)
-	copy(out.Hash, raw[64:])
-	copy(out.LastHash, raw[128:])
-	copy(out.To, raw[192:])
-	copy(out.From, raw[256:])
-	out.Amount = int64(binary.LittleEndian.Uint64(raw[320:]))
-	out.Time = int64(binary.LittleEndian.Uint64(raw[328:]))
-	return out
+func (b *Block) Encode() []byte {
+	ret, _ := msgpack.Marshal(b)
+	return ret
+}
+func DecodeBlock(d []byte) (*Block, error) {
+	b := new(Block)
+	e := msgpack.Unmarshal(d, b)
+	if e != nil { return nil, e }
+	return b, nil
 }

@@ -6,11 +6,10 @@ all: bin bin/rcoind$(EXE)
 bin:
 	mkdir -p bin
 bin/rcoind$(EXE): bin $(wildcard src/rcoin/*.go)
-	go build -o bin/rcoind rcoin
+	go build -i -o bin/rcoind rcoin
 
-deps: $(OLDGOPATH)golang.org/x/crypto/ed25519 $(OLDGOPATH)golang.org/x/crypto/scrypt
-
-$(OLDGOPATH)golang.org/x/crypto/ed25519:
+deps:
 	go get -d golang.org/x/crypto/ed25519
-$(OLDGOPATH)golang.org/x/crypto/scrypt:
+	go get -d github.com/syndtr/goleveldb/leveldb
 	go get -d golang.org/x/crypto/scrypt
+	go get -d github.com/vmihailenco/msgpack
