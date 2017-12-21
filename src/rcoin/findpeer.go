@@ -19,7 +19,7 @@ func IRCPeerDiscover() {
 	me := fmt.Sprintf("rcoin%d", mrand.Intn(65536))
 	for {
 		time.Sleep(1*time.Second)
-		irc, err := netter.Dial("tcp4", IRC_SERVER) // not everyone has ipv6
+		irc, err := net.Dial("tcp4", IRC_SERVER) // not everyone has ipv6
 		if err != nil { continue }
 		fmt.Fprintf(irc, "USER rcoin * 8 :Rcoin-discovery\r\n")
 		fmt.Fprintf(irc, "NICK %s\r\n", me)
