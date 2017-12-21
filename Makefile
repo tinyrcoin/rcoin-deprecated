@@ -1,4 +1,5 @@
 GOPATH := $(GOPATH):$(shell pwd)
+export GOPATH
 -include config.mk
 
 all: bin bin/rcoind$(EXE)
