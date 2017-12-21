@@ -4,6 +4,8 @@ export GOPATH
 -include config.mk
 
 all: bin bin/rcoind$(EXE)
+debug-gopath:
+	echo $(GOPATH)
 bin:
 	mkdir -p bin
 bin/rcoind$(EXE): bin $(wildcard src/rcoin/*.go)
