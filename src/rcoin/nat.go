@@ -26,6 +26,7 @@ func PortForward() {
 }
 
 func TryUPnP() bool {
+	defer recover()
 	d, err := upnp.Discover()
 	if err != nil { return false }
 	var port int
