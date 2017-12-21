@@ -20,7 +20,7 @@ func (w *Wallet) Send(c *Chain, a Address, amt float64) {
 	tx.SetAmount(amt)
 	tx.To = a
 	tx.Sign(w.Private)
-	unconfirmed[string(tx.Signature)] = tx
+	unconfirmed.Store(string(tx.Signature), tx)
 	Broadcast(Command{Type:CMD_TX,TX:*tx},"")
 }
 func GenerateWallet() (w *Wallet) {

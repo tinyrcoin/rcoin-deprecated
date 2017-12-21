@@ -1,50 +1,58 @@
 package main
-
+import "encoding/json"
 import "net/http"
 import "fmt"
 type R *http.Request
 type W http.ResponseWriter
-func __(a func (W, *http.Request)) (func(http.ResponseWriter, *http.Request)) {
-	return func(w http.ResponseWriter, r *http.Request) { a(W(w), r) }
+type Req struct {
+	Http *http.Request
+}
+type Reply map[string]interface{}
+func (r *Req) FormValue(n string) string {
+	return r.Http.FormValue(n)
+}
+func __(a func (r *Req) Reply) (func(http.ResponseWriter, *http.Request)) {
+	return func(w http.ResponseWriter, r *http.Request) { byt, _ := json.MarshalIndent(a(&Req{r}),""," "); w.Write(byt) }
 }
 func RPCServer(addr string) {
-	http.HandleFunc("/stat", __(func (w W, r *http.Request) {
-		fmt.Fprintf(w, "UnconfirmedTransactions:%d\nBlockchainHeight:%d\nPeers:%d\n", len(unconfirmed), chain.Height(), len(peers)) 
-		fmt.Fprintf(w, "Difficulty:%d\n", chain.GetDifficulty())
+	http.HandleFunc("/stat", __(func (r *Req) Reply {
+		return Reply{
+			"difficulty": chain.GetDifficulty(),
+			"unconfirmed": unconfirmed.Length(),
+			"height": chain.Height(),
+			"peers": peers.Length(),
+		}
 	}))
-	http.HandleFunc("/wallet/balance", __(func (w W, r *http.Request) {
-		fmt.Fprintf(w, "%0.4f\n", chain.GetBalance(DecodeWalletAddress(r.FormValue("address"))))
+	http.HandleFunc("/balance", __(func (r *Req) Reply {
+		return Reply{"balance":chain.GetBalance(DecodeWalletAddress(r.FormValue("address")))}
 	}))
-	http.HandleFunc("/wallet/send", __(func (w W, r *http.Request) {
+	http.HandleFunc("/wallet/send", __(func (r *Req) Reply {
 		if !HasWallet(r.FormValue("name")) {
-			fmt.Fprintf(w, "error:NotExists\n")
-			return
+			return Reply{"error":"no_wallet"}
 		}
 		wal := GetWallet(r.FormValue("name"))
 		var amt float64
 		fmt.Sscanf(r.FormValue("amount"), "%f", &amt)
 		if wal.Balance(chain) < amt {
-			fmt.Fprintf(w, "error:NotEnoughFunds\n")
-			return
+			return Reply{"error":"no_funds"}
 		}
 		wal.Send(chain, DecodeWalletAddress(r.FormValue("to")), amt)
+		return Reply{"success":true}
 	}))
-	http.HandleFunc("/wallet/create", __(func (w W, r *http.Request) {
+	http.HandleFunc("/wallet/create", __(func (r *Req) Reply {
 		if HasWallet(r.FormValue("name")) {
-			fmt.Fprintf(w, "error:Exists\n")
-			return
+			return Reply{"error":"wallet_exists"}
 		}
 		wal := GenerateWallet()
 		PutWallet(r.FormValue("name"), wal)
-		fmt.Fprintf(w, "address:%s\n", wal.Public.String())
+		return Reply{"address":wal.Public.String()}
 	}))
-	http.HandleFunc("/wallet/stat", __(func (w W, r *http.Request) {
+	http.HandleFunc("/wallet/stat", __(func (r *Req) Reply {
 		if !HasWallet(r.FormValue("name")) {
-			fmt.Fprintf(w, "error:NotExists\n")
-			return
+			return Reply{"error":"no_wallet"}
 		}
 		wal := GetWallet(r.FormValue("name"))
-		fmt.Fprintf(w, "address:%s\n", wal.Public.String())
+		return Reply{"address":wal.Public.String(),"balance":wal.Balance(chain)}
 	}))
 	http.ListenAndServe(addr, nil)
 }

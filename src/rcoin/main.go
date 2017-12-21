@@ -6,6 +6,7 @@ import (
 )
 var chain *Chain
 var tests = map[string]func(){}
+var cli = flag.String("cli", "", "Use the basic built in command line interface to access a `wallet`. Or enter 'create' as the wallet name to create a new one.")
 var datadir = flag.String("data", userhome() + "/.rcoin", "Data `path`")
 var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
@@ -15,6 +16,10 @@ var bootstrap = flag.String("boot", "", "Bootstrap `peer`")
 var opts = flag.String("o", "", "Specify misc. `options` separated by commas. Options: nonat, forceupnp, noirc.")
 func main() {
 	flag.Parse()
+	if *cli != "" {
+		cliConsole()
+		return
+	}
 	if *dotest != "" {
 		tests[*dotest]()
 		return
@@ -31,6 +36,7 @@ func main() {
 		}
 	}
 	go ListenPeer(*peeraddr)
+	go DbConnectPeers()
 	go PortForward()
 	go PeerDiscover()
 	RPCServer(*rpcport)

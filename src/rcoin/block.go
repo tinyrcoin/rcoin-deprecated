@@ -6,6 +6,7 @@ import "encoding/base32"
 import "fmt"
 import "github.com/vmihailenco/msgpack"
 import "golang.org/x/crypto/ed25519"
+import "math/rand"
 type Address []byte
 func init() {
 	tests["mine"] = func() {
@@ -39,6 +40,10 @@ type Transaction struct {
 	Signature Address
 	Amount int64
 }
+func (t *Transaction) CalcFee() int64 {
+	flt := float64(t.Amount)/1000
+	return int64(flt*0.015)
+}
 func (t *Transaction) Encode() []byte {
 	ret, _ := msgpack.Marshal(t)
 	return ret
@@ -49,6 +54,7 @@ func (t *Transaction) Sign(key ed25519.PrivateKey) {
 	t.Signature = ed25519.Sign(key, t.Encode())
 }
 func (t *Transaction) Verify() bool {
+	if (t.Amount < 1) { return false }
 	sig := t.Signature
 	t.Signature = make([]byte, 64)
 	ret := ed25519.Verify([]byte(t.From), t.Encode(), sig)
@@ -76,6 +82,11 @@ type Block struct {
 	Signature Address
 	TX []Transaction
 	Time int64
+}
+func (b *Block) CalcReward() (r int64) {
+	r = 25 * 1000
+	for _, v := range b.TX { r += v.CalcFee() }
+	return
 }
 var BirthdayBlock = &Block{
 	make([]byte, 64),
@@ -117,6 +128,7 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 	for i := 0; i < threads; i++ {
 	go func() {
 	b2, _ := DecodeBlock(b.Encode())
+	b2.Nonce = rand.Int63()
 	for {
 		b2.Hash = null64
 		b2.Hash = HashBytes(b2.Encode())
@@ -132,13 +144,15 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 	select {
 	case b.Nonce = <- done:
 		b.SetHash()
+		fmt.Println("")
 		return
 	default:
 		time.Sleep(1 * time.Second)
-		fmt.Printf("\r %d hashes/second    \r", hashes)
+		fmt.Printf("\r %d hashes/second.", hashes)
 		hashes = 0
 	}
 	}
+	fmt.Println("")
 
 }
 var MAXUINT512 = new(big.Int).Exp(big.NewInt(2), big.NewInt(512), big.NewInt(0))

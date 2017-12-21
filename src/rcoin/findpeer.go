@@ -6,13 +6,16 @@ import "fmt"
 import "strings"
 import mrand "math/rand"
 import "bufio"
+import "log"
 const IRC_SERVER = "irc.lfnet.org:6667"
 func PeerDiscover() {
 	if !strings.Contains(*opts, "noirc") {
-	go IRCPeerDiscover()
+		log.Println("Looking for peers using IRC")
+		go IRCPeerDiscover()
 	}
 }
 func IRCPeerDiscover() {
+	mrand.Seed(time.Now().UnixNano())
 	me := fmt.Sprintf("rcoin%d", mrand.Intn(65536))
 	for {
 		time.Sleep(1*time.Second)
@@ -27,7 +30,6 @@ func IRCPeerDiscover() {
 			ircln, err = bf.ReadString('\n')
 			fmt.Sscan(ircln + "\n", &src, &cmd, &arg1, &arg2, &arg3)
 			if err != nil {
-				println(err.Error())
 				break
 			}
 			switch cmd {
@@ -38,7 +40,8 @@ func IRCPeerDiscover() {
 				case "PRIVMSG":
 					srchost := strings.Split(src, "@")[1]
 					if strings.Contains(srchost, ":") { srchost = "[" + srchost + "]" }
-					if arg2 == ":.conn" && len(peers) < 30 && peers[srchost + ":" + arg3] == nil {
+					_, ok := peers.Load(srchost + ":" + arg3)
+					if arg2 == ":.conn" && peers.Length() < 30 && (!ok) {
 						ConnectPeer(srchost + ":" + arg3, true)
 					}
 					if arg2 == ":.req" && !IsNatted() {

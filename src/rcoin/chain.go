@@ -11,7 +11,7 @@ type Chain struct {
 	DB *leveldb.DB
 	Cache ChainCache
 	LastDifficulty int
-	GaveDiff bool
+	GaveDiff int64
 }
 func OpenChain(path string) (*Chain, error) {
 	c := new(Chain)
@@ -26,7 +26,6 @@ func OpenChain(path string) (*Chain, error) {
 	return c, nil
 }
 func (c *Chain) AddRawBlock(data []byte) {
-	c.GaveDiff = false
 	id := fmt.Sprintf("block%d", c.Height())
 	c.DB.Put([]byte(id), data, nil)
 	c.Cache.height++
@@ -34,15 +33,16 @@ func (c *Chain) AddRawBlock(data []byte) {
 func (c *Chain) AddBlock(b *Block) {
 	for _, t := range b.TX {
 	if _, ok := c.Cache.balances[t.From.String()]; ok {
-	c.Cache.balances[t.From.String()] -= t.Amount
+	c.Cache.balances[t.From.String()] -= t.Amount - t.CalcFee()
 	}
 	if _, ok := c.Cache.balances[t.To.String()]; ok {
 	c.Cache.balances[t.To.String()] += t.Amount
 	}
 	}
 	if _, ok := c.Cache.balances[b.RewardTo.String()]; ok {
-	c.Cache.balances[b.RewardTo.String()] += int64((10+len(b.TX))*1000)
+	c.Cache.balances[b.RewardTo.String()] += b.CalcReward()
 	}
+	c.GetDifficulty()
 	c.AddRawBlock(b.Encode())
 }
 func (c *Chain) GetRawBlock(id int64) []byte {
@@ -54,26 +54,34 @@ func (c *Chain) GetBlock(id int64) *Block {
 	return r
 }
 func (c *Chain) GetDifficulty() (r int) {
-	if c.GaveDiff {
-		r = c.LastDifficulty
-		return r
+	if c.LastDifficulty == 0 {
+		for i := int64(0); i < c.Height(); i++ {
+			c.getDifficulty(i)
+		}
 	}
-	c.GaveDiff = true
+	return c.getDifficulty(c.Height())
+}
+func (c *Chain) getDifficulty(height int64) (r int) {
 	or := c.LastDifficulty
 	defer func() {
 		r = c.LastDifficulty
 		if recover() != nil { r = or }
+		if r == 0 { r = 10 }
 	} ()
+	if c.GaveDiff == height {
+		return
+	}
+	c.GaveDiff = height
 	if c.Height() <= 2 {
 		c.LastDifficulty = 10
 		return
 	}
-	blk := c.GetBlock(c.Height() - 1)
-	blk2 := c.GetBlock(c.Height() - 2)
-	if (blk.Time - blk2.Time) < 300 {
-		c.LastDifficulty = int((c.LastDifficulty/int(blk.Time - blk2.Time))*600)
-	} else {
-		c.LastDifficulty = int((c.LastDifficulty/int(blk.Time - blk2.Time))*300)
+	blk := c.GetBlock(height - 1)
+	blk2 := c.GetBlock(height - 2)
+	if (blk.Time - blk2.Time) < 25 {
+		c.LastDifficulty = int((float64(c.LastDifficulty)/(float64(blk.Time - blk2.Time))+1)*40)
+	} else if (blk.Time - blk2.Time) >= 25 {
+		c.LastDifficulty = int(float64(c.LastDifficulty)/float64(blk.Time - blk2.Time)*30)
 	}
 	return
 }
@@ -135,10 +143,10 @@ func (c *Chain) GetBalanceRaw(a Address) int64 {
 	iter := c.DB.NewIterator(util.BytesPrefix([]byte("block")), nil)
 	for iter.Next() {
 		blk, _ := DecodeBlock(iter.Value())
-		fees := int64(10*1000 + len(blk.TX)*1000) // not technically a fee since the sender doesn't pay anything
+		fees := blk.CalcReward()
 		for _, v := range blk.TX {
 			if a.Equals(v.From) {
-				ret -= v.Amount
+				ret -= v.Amount - v.CalcFee()
 			}
 			if a.Equals(v.To) {
 				ret += v.Amount

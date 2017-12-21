@@ -3,16 +3,19 @@ package main
 import "time"
 import "log"
 func GetTransactions() []Transaction {
-	if len(unconfirmed) == 0 { return nil }
+	if unconfirmed.Length() == 0 { return nil }
 	ret := []Transaction(nil)
 	del := []string(nil)
-	for k, v := range unconfirmed {
-		if len(ret) > 85 { break }
+	unconfirmed.Range(func(kk, vv interface{}) bool {
+		k := kk.(string)
+		v := vv.(*Transaction)
+		if len(ret) > 85 { return false }
 		ret = append(ret, *v)
 		del = append(del, k)
-	}
+		return true
+	})
 	for _, v := range del {
-		delete(unconfirmed, v)
+		unconfirmed.Delete(v)
 	}
 	return ret
 }
@@ -22,7 +25,7 @@ func Miner(threads int, payout []byte) {
 	log.Printf("Rewards go to %s", Address(payout[32:]).String())
 	for {
 		txs := GetTransactions()
-		if txs == nil { time.Sleep(30*time.Second); continue }
+		if txs == nil { time.Sleep(time.Second); continue }
 		log.Printf("Working on block with %d transactions.", len(txs))
 		b := NewBlock()
 		b.TX = txs

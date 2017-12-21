@@ -1,15 +1,28 @@
 package main
 import "log"
+import "os"
 import "net"
 import "encoding/binary"
 import "fmt"
 import "github.com/vmihailenco/msgpack"
-var unconfirmed = map[string]*Transaction{}
+import "sync"
+import "strings"
+import "io/ioutil"
+type ConcurrentMap struct {
+	sync.Map
+}
+func (c *ConcurrentMap) Length() int {
+	i := 0
+	c.Map.Range(func (k, v interface{}) bool { i++; return true })
+	return i
+}
+//var unconfirmed = map[string]*Transaction{}
+var unconfirmed = new(ConcurrentMap)
 type Peer struct {
 	Conn net.Conn
 	Inbound bool
 }
-var peers = map[string]*Peer{}
+var peers = new(ConcurrentMap)
 const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
@@ -55,11 +68,12 @@ func (p *Peer) PutCommand(c Command) {
 	p.Conn.Write(o)
 }
 func Broadcast(c Command, not string) {
-	for k, v := range peers {
-		if k != not {
-			v.PutCommand(c)
+	peers.Range(func(k, v interface{}) bool {
+		if k.(string) != not {
+			v.(*Peer).PutCommand(c)
 		}
-	}
+		return true
+	})
 }
 func (p *Peer) Main() {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
@@ -77,7 +91,7 @@ func (p *Peer) Main() {
 					break
 				}
 				for _, v := range cmd.Block.TX {
-					delete(unconfirmed,string(v.Signature))
+					unconfirmed.Delete(string(v.Signature))
 				}
 				chain.AddBlock(&cmd.Block)
 				Broadcast(cmd, p.Conn.RemoteAddr().String())
@@ -86,6 +100,7 @@ func (p *Peer) Main() {
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
 					if i < chain.Height() { p.PutCommand(Command{Type:CMD_BLOCK,Block:*(chain.GetBlock(i))}) }
 				}
+				unconfirmed.Range(func (k, v interface{}) bool { p.PutCommand(Command{Type:CMD_TX,TX:*(v.(*Transaction))}); return true })
 			break
 			case CMD_TX:
 				if !cmd.TX.Verify() {
@@ -95,7 +110,7 @@ func (p *Peer) Main() {
 					log.Printf("(2) I got a bad transaction"); break
 				}
 				if *mining {
-					unconfirmed[string(cmd.TX.Signature)] = &cmd.TX
+					unconfirmed.Store(string(cmd.TX.Signature), &cmd.TX)
 				}
 				Broadcast(cmd, p.Conn.RemoteAddr().String())
 			break
@@ -105,9 +120,9 @@ func (p *Peer) Main() {
 
 func AddPeer(n net.Conn, inbound bool) {
 	p := &Peer{n,inbound}
-	peers[n.RemoteAddr().String()] = p
+	peers.Store(n.RemoteAddr().String(), p)
 	p.Main()
-	delete(peers, n.RemoteAddr().String())
+	peers.Delete(n.RemoteAddr().String())
 }
 
 func ConnectPeer(addr string, save bool) {
@@ -117,6 +132,7 @@ func ConnectPeer(addr string, save bool) {
 		log.Printf("[peer %s] Failed to connect: %s", addr, e.Error())
 		return
 	}
+	if save { DbAddPeer(addr) }
 	AddPeer(n, false)
 }
 
@@ -127,4 +143,32 @@ func ListenPeer(addr string) {
 		peer, _ := srv.Accept()
 		go AddPeer(peer, true)
 	}
+}
+func DbAddPeer(addr string) {
+	peerDb, err := os.OpenFile(*datadir + "/peers.txt", os.O_APPEND|os.O_CREATE, 0755)
+	if err != nil {
+		log.Printf("Warning: can't add peer to database: %v", err)
+	}
+	fmt.Fprintln(peerDb, addr)
+	peerDb.Close()	
+}
+func DbHasPeer(addr string) bool {
+	d, _ := ioutil.ReadFile(*datadir + "/peers.txt")
+	if d == nil {
+		return false
+	}
+	return strings.Contains(string(d), addr + "\n")
+}
+func DbConnectPeers() {
+	f, err := os.Open(*datadir + "/peers.txt")
+	if err != nil { return }
+	for {
+		var p string
+		_, err := fmt.Fscanln(f, &p)
+		if err != nil {
+			break
+		}
+		go ConnectPeer(p, false)
+	}
+	f.Close()
 }
