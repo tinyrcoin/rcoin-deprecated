@@ -24,8 +24,13 @@ func main() {
 		tests[*dotest]()
 		return
 	}
+	if len(strings.Split(*peeraddr)) == 1 {
+		*peeraddr = "0.0.0.0" + *peeraddr
+	}
 	os.Mkdir(*datadir, 0755)
 	log.Println("Starting rcoind")
+	log.Printf("Listen on %s", *peeraddr)
+	log.Printf("RPC: %s", *rpcport)
 	chain, _ = OpenChain(*datadir + "/rcoin.db")
 	if chain == nil { log.Fatal("Blockchain corrupt") }
 	if *bootstrap != "" { go ConnectPeer(*bootstrap, true) }
