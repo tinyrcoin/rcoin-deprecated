@@ -7,7 +7,22 @@ type Wallet struct {
 	Public Address
 	Private []byte
 }
-
+func DecodeWalletAddress(s string) Address {
+	c := GetWallet(s)
+	if c != nil { return c.Public }
+	return DecodeAddress(s)
+}
+func (w *Wallet) Balance(c *Chain) float64 {
+	return c.GetBalance(w.Public)
+}
+func (w *Wallet) Send(c *Chain, a Address, amt float64) {
+	tx := NewTransaction()
+	tx.SetAmount(amt)
+	tx.To = a
+	tx.Sign(w.Private)
+	unconfirmed[string(tx.Signature)] = tx
+	Broadcast(Command{Type:CMD_TX,TX:*tx},"")
+}
 func GenerateWallet() (w *Wallet) {
 	w = new(Wallet)
 	pu, pr, _ := ed25519.GenerateKey(nil)

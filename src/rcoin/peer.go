@@ -4,21 +4,28 @@ import "net"
 import "encoding/binary"
 import "fmt"
 import "github.com/vmihailenco/msgpack"
+var unconfirmed = map[string]*Transaction{}
 type Peer struct {
 	Conn net.Conn
 	Inbound bool
 }
-const /* COMMAND_TYPES */ (
+var peers = map[string]*Peer{}
+const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
 	CMD_PEER = 3
-)
+	CMD_GETBLOCK = 4
+	CMD_SYNC = 5
+)     /*\ COMMAND_TYPES \*/
 type Command struct {
 	Type uint8 // command type
 	Block Block // a block, that belongs in the blockchain
 	Text string // could be anything
 	TX Transaction // for an unverified transaction
-	// if this is changed the protocol will break horribly
+	RangeStart int64
+	RangeEnd int64
+	A, B, C int64
+	// if this struct changed the protocol will break horribly
 	// just a nice little warning
 }
 type PartialNodeBlockchain struct {
@@ -29,7 +36,7 @@ func (p *Peer) GetCommand() (Command, error) {
 	_, err := p.Conn.Read(b)
 	if err != nil { return Command{}, err }
 	i := int(binary.LittleEndian.Uint32(b))
-	if i > (1024*1024*32) {
+	if i > (1024*1024*8) {
 		return Command{}, fmt.Errorf("Someone is trying to DoS Me!")
 	}
 	o := make([]byte, i)
@@ -47,7 +54,15 @@ func (p *Peer) PutCommand(c Command) {
 	p.Conn.Write(b)
 	p.Conn.Write(o)
 }
+func Broadcast(c Command, not string) {
+	for k, v := range peers {
+		if k != not {
+			v.PutCommand(c)
+		}
+	}
+}
 func (p *Peer) Main() {
+	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	for {
 		cmd, err := p.GetCommand()
 		if err != nil {
@@ -60,8 +75,55 @@ func (p *Peer) Main() {
 					log.Printf("I got a bad block: dropping (we may have a bad peer or a hard fork occurred)")
 					break
 				}
+				for _, v := range cmd.Block.TX {
+					delete(unconfirmed,string(v.Signature))
+				}
 				chain.AddBlock(&cmd.Block)
+				Broadcast(cmd, p.Conn.RemoteAddr().String())
+			break
+			case CMD_SYNC:
+				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
+					if i < chain.Height() { p.PutCommand(Command{Type:CMD_BLOCK,Block:*(chain.GetBlock(i))}) }
+				}
+			break
+			case CMD_TX:
+				if !cmd.TX.Verify() {
+					log.Printf("I got a bad transaction"); break
+				}
+				if chain.GetBalanceRaw(cmd.TX.From) < cmd.TX.Amount {
+					log.Printf("(2) I got a bad transaction"); break
+				}
+				if *mining {
+					unconfirmed[string(cmd.TX.Signature)] = &cmd.TX
+				}
+				Broadcast(cmd, p.Conn.RemoteAddr().String())
 			break
 		}
+	}
+}
+
+func AddPeer(n net.Conn, inbound bool) {
+	p := &Peer{n,inbound}
+	peers[n.RemoteAddr().String()] = p
+	p.Main()
+	delete(peers, n.RemoteAddr().String())
+}
+
+func ConnectPeer(addr string) {
+	log.Printf("Connecting to peer %s", addr)
+	n, e := net.Dial("tcp", addr)
+	if e != nil {
+		log.Printf("[peer %s] Failed to connect: %s", addr, e.Error())
+		return
+	}
+	AddPeer(n, false)
+}
+
+func ListenPeer(addr string) {
+	srv, err := net.Listen("tcp", addr)
+	if err != nil { return }
+	for {
+		peer, _ := srv.Accept()
+		go AddPeer(peer, true)
 	}
 }

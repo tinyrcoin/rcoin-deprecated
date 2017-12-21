@@ -55,6 +55,12 @@ func (t *Transaction) Verify() bool {
 	t.Signature = sig
 	return ret
 }
+func (t *Transaction) SetAmount(f float64) {
+	t.Amount = int64(f * 1000)
+}
+func (t *Transaction) GetAmount() float64 {
+	return float64(t.Amount)/1000
+}
 func NewTransaction() (t *Transaction) {
 	t = new(Transaction)
 	t.From = make(Address, 32)
@@ -75,7 +81,7 @@ var BirthdayBlock = &Block{
 	make([]byte, 64),
 	make([]byte, 64),
 	0,
-	DecodeAddress("GFOGXYUAOGD7AH3K3OK6GNIWXD7E7QCY2YPDD5RSWTYK2IKQDMXA"),
+	DecodeAddress("IVABM6GKTVHYGK4ZTZ2IJITTK5JV4JG4HIZQNIRQQKYFZT2AXZDA"),
 	make([]byte, 64),
 	nil,
 	0,
@@ -83,7 +89,7 @@ var BirthdayBlock = &Block{
 func (b *Block) Verify() bool {
 	osig := b.Signature
 	b.Signature = make([]byte, 64)
-	ret := ed25519.Verify([]byte(b.RewardTo), b.Encode(), b.Signature)
+	ret := ed25519.Verify([]byte(b.RewardTo), b.Encode(), osig)
 	b.Signature = osig
 	return ret
 }
@@ -104,6 +110,7 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 	null64 := make([]byte, 64)
 	b.Signature = make([]byte, 64)
 	b.Nonce = 0
+	b.Time = 0
 	hashes := 0
 	finished := false
 	done := make(chan int64)
@@ -136,6 +143,9 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 }
 var MAXUINT512 = new(big.Int).Exp(big.NewInt(2), big.NewInt(512), big.NewInt(0))
 func (b *Block) VerifyPoW(difficulty int) bool {
+	t := b.Time
+	defer func() { b.Time = t } ()
+	b.Time = 0
 	threshold := new(big.Int).Div(MAXUINT512, big.NewInt(int64(difficulty)))
 	if new(big.Int).SetBytes(b.Hash).Cmp(threshold) <= 0 { return true }
 	return false

@@ -11,3 +11,5 @@ func HashBytes(b []byte) []byte {
 	out := sha512.Sum512(scrypted)
 	return out[:]
 }
+
+// TODO use Cuckoo Cycle

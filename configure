@@ -10,3 +10,5 @@ if [ "$(go version | grep windows)" != "" ]; then
 else
 	echo "EXE ?= " > config.mk
 fi
+
+make deps

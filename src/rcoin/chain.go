@@ -11,6 +11,7 @@ type Chain struct {
 	DB *leveldb.DB
 	Cache ChainCache
 	LastDifficulty int
+	GaveDiff bool
 }
 func OpenChain(path string) (*Chain, error) {
 	c := new(Chain)
@@ -21,14 +22,27 @@ func OpenChain(path string) (*Chain, error) {
 		db.Put([]byte("block0"),BirthdayBlock.Encode(), nil)
 	}
 	c.Cache.balances = map[string]int64{}
+	c.Cache.hashes = map[string]int64{}
 	return c, nil
 }
 func (c *Chain) AddRawBlock(data []byte) {
+	c.GaveDiff = false
 	id := fmt.Sprintf("block%d", c.Height())
 	c.DB.Put([]byte(id), data, nil)
 	c.Cache.height++
 }
 func (c *Chain) AddBlock(b *Block) {
+	for _, t := range b.TX {
+	if _, ok := c.Cache.balances[t.From.String()]; ok {
+	c.Cache.balances[t.From.String()] -= t.Amount
+	}
+	if _, ok := c.Cache.balances[t.To.String()]; ok {
+	c.Cache.balances[t.To.String()] += t.Amount
+	}
+	}
+	if _, ok := c.Cache.balances[b.RewardTo.String()]; ok {
+	c.Cache.balances[b.RewardTo.String()] += int64((10+len(b.TX))*1000)
+	}
 	c.AddRawBlock(b.Encode())
 }
 func (c *Chain) GetRawBlock(id int64) []byte {
@@ -39,10 +53,20 @@ func (c *Chain) GetBlock(id int64) *Block {
 	r, _ := DecodeBlock(c.GetRawBlock(id))
 	return r
 }
-func (c *Chain) GetDifficulty() int {
+func (c *Chain) GetDifficulty() (r int) {
+	if c.GaveDiff {
+		r = c.LastDifficulty
+		return r
+	}
+	c.GaveDiff = true
+	or := c.LastDifficulty
+	defer func() {
+		r = c.LastDifficulty
+		if recover() != nil { r = or }
+	} ()
 	if c.Height() <= 2 {
-		c.LastDifficulty = 1000
-		return 1000
+		c.LastDifficulty = 10
+		return
 	}
 	blk := c.GetBlock(c.Height() - 1)
 	blk2 := c.GetBlock(c.Height() - 2)
@@ -51,7 +75,7 @@ func (c *Chain) GetDifficulty() int {
 	} else {
 		c.LastDifficulty = int((c.LastDifficulty/int(blk.Time - blk2.Time))*300)
 	}
-	return c.LastDifficulty
+	return
 }
 func (c *Chain) HashToBlockNum(hash []byte) int64 {
 	if _, ok := c.Cache.hashes[string(hash)]; !ok {
@@ -79,11 +103,14 @@ func (c *Chain) Verify(b *Block) bool {
 	if !b.VerifyPoW(c.GetDifficulty()) {
 		return false
 	}
+	if len(b.TX) > 90 {
+		return false
+	}
 	if c.HashToBlockNum(b.LastHash) == -1 {
 		return false
 	}
 	for _, v := range b.TX {
-	if c.GetBalance(v.From) < v.Amount {
+	if c.GetBalanceRaw(v.From) < v.Amount {
 		return false
 	}
 	}
@@ -96,13 +123,16 @@ func (c *Chain) Height() int64 {
 	}
 	return c.Cache.height
 }
-func (c *Chain) GetBalance(a Address) int64 {
+func (c *Chain) GetBalance(a Address) float64 {
+	return float64(c.GetBalanceRaw(a)) / 1000
+}
+func (c *Chain) GetBalanceRaw(a Address) int64 {
 	if _, ok := c.Cache.balances[a.String()]; !ok {
 	ret := int64(0)
 	iter := c.DB.NewIterator(util.BytesPrefix([]byte("block")), nil)
 	for iter.Next() {
 		blk, _ := DecodeBlock(iter.Value())
-		fees := int64(10 + len(blk.TX)) // not technically a fee since the sender doesn't pay anything
+		fees := int64(10*1000 + len(blk.TX)*1000) // not technically a fee since the sender doesn't pay anything
 		for _, v := range blk.TX {
 			if a.Equals(v.From) {
 				ret -= v.Amount
