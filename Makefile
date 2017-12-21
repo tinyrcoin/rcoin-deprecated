@@ -5,6 +5,7 @@ export GOPATH
 
 all: bin bin/rcoind$(EXE)
 debug-gopath:
+	echo Original gopath: $(GOPATH2)
 	echo $(GOPATH)
 bin:
 	mkdir -p bin
