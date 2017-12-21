@@ -106,6 +106,9 @@ func (c *Chain) Verify(b *Block) bool {
 	if len(b.TX) > 90 {
 		return false
 	}
+	if string(c.GetBlock(c.Height()-1).Hash) != string(b.LastHash) {
+		return false
+	}
 	if c.HashToBlockNum(b.LastHash) == -1 {
 		return false
 	}
