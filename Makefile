@@ -1,4 +1,5 @@
-GOPATH := $(GOPATH):$(shell pwd)
+GOPATH2 := $(GOPATH)
+GOPATH := $(GOPATH2):$(shell pwd)
 export GOPATH
 -include config.mk
 
