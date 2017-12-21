@@ -15,3 +15,9 @@ deps:
 	go get -d github.com/vmihailenco/msgpack
 	go get -d github.com/ccding/go-stun/stun
 	go get -d github.com/NebulousLabs/go-upnp
+
+dist-binaries:
+	mkdir -p dist
+	env GOOS=windows GOARCH=386 go build -i -o dist/rcoind.exe rcoin
+	env GOOS=linux GOARCH=386 go build -i -o dist/rcoind-linux386 rcoin
+	env GOOS=darwin GOARCH=amd64 go build -i -o dist/rcoind-macosx rcoin
