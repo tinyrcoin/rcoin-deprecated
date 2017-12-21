@@ -25,7 +25,7 @@ func main() {
 		tests[*dotest]()
 		return
 	}
-	if len(strings.Split(*peeraddr)) == 1 {
+	if len(strings.Split(*peeraddr),":") == 1 {
 		*peeraddr = "0.0.0.0" + *peeraddr
 	}
 	os.Mkdir(*datadir, 0755)
