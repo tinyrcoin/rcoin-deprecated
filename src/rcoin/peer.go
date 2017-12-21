@@ -98,6 +98,7 @@ func (p *Peer) Main() {
 			break
 			case CMD_SYNC:
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
+					if chain.GetBlock(i) == nil { continue }
 					if i < chain.Height() { p.PutCommand(Command{Type:CMD_BLOCK,Block:*(chain.GetBlock(i))}) }
 				}
 				unconfirmed.Range(func (k, v interface{}) bool { p.PutCommand(Command{Type:CMD_TX,TX:*(v.(*Transaction))}); return true })
