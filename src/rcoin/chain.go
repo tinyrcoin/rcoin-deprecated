@@ -79,7 +79,7 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 	blk := c.GetBlock(height - 1)
 	blk2 := c.GetBlock(height - 2)
 	if (blk.Time - blk2.Time) < 25 {
-		c.LastDifficulty = int((float64(c.LastDifficulty)/(float64(blk.Time - blk2.Time))+1)*40)
+		c.LastDifficulty = int((float64(c.LastDifficulty)/(float64(blk.Time - blk2.Time))+1)*120)
 	} else if (blk.Time - blk2.Time) >= 25 {
 		c.LastDifficulty = int(float64(c.LastDifficulty)/float64(blk.Time - blk2.Time)*30)
 	}
