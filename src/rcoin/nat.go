@@ -30,7 +30,10 @@ func TryUPnP() bool {
 	d, err := upnp.Discover()
 	if err != nil { return false }
 	var port int
-	str := strings.Split(*peeraddr, ":")[1]
+	str := strings.Split(*peeraddr, ":")[0]
+	if len(strings.Split(*peeraddr, ":")) > 1 {
+	str = strings.Split(*peeraddr, ":")[1]
+	}
 	port, _ = strconv.Atoi(str)
 	d.Clear(uint16(port))
 	err = d.Forward(uint16(port), "RCoin Port Forward")
