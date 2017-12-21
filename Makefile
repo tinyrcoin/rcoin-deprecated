@@ -1,5 +1,4 @@
-OLDGOPATH := $(GOPATH)/src/
-GOPATH := $(GOPATH):$(PWD)
+GOPATH := $(GOPATH):$(shell pwd)
 -include config.mk
 
 all: bin bin/rcoind$(EXE)
@@ -16,8 +15,12 @@ deps:
 	go get -d github.com/ccding/go-stun/stun
 	go get -d github.com/NebulousLabs/go-upnp
 
-dist-binaries:
+dist-binaries-dir:
 	mkdir -p dist
+dist-binaries: dist-binaries-dir dist-win32 dist-linux dist-mac
+dist-win32:
 	env GOOS=windows GOARCH=386 go build -i -o dist/rcoind.exe rcoin
-	env GOOS=linux GOARCH=386 go build -i -o dist/rcoind-linux386 rcoin
-	env GOOS=darwin GOARCH=amd64 go build -i -o dist/rcoind-macosx rcoin
+dist-linux:
+	env CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -i -o dist/rcoind-linux386 rcoin
+dist-mac:
+	env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -i -o dist/rcoind-macosx rcoin

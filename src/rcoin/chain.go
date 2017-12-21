@@ -42,8 +42,8 @@ func (c *Chain) AddBlock(b *Block) {
 	if _, ok := c.Cache.balances[b.RewardTo.String()]; ok {
 	c.Cache.balances[b.RewardTo.String()] += b.CalcReward()
 	}
-	c.GetDifficulty()
 	c.AddRawBlock(b.Encode())
+	c.GetDifficulty()
 }
 func (c *Chain) GetRawBlock(id int64) []byte {
 	d, _ := c.DB.Get([]byte(fmt.Sprintf("block%d", id)), nil)
