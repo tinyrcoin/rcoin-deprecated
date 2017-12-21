@@ -6,12 +6,13 @@ import (
 )
 var chain *Chain
 var tests = map[string]func(){}
-var datadir = flag.String("data", userhome() + "/.rcoin", "Data path")
-var dotest = flag.String("test", "", "Run a test module")
+var datadir = flag.String("data", userhome() + "/.rcoin", "Data `path`")
+var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
-var rpcport = flag.String("rpc", "127.0.0.1:3009", "RPC listen port")
-var peeraddr = flag.String("p2p", ":30009", "P2P port")
-var bootstrap = flag.String("boot", "", "Bootstrap peer")
+var rpcport = flag.String("rpc", "127.0.0.1:3009", "RPC listen `port`")
+var peeraddr = flag.String("p2p", ":30009", "P2P `port`")
+var bootstrap = flag.String("boot", "", "Bootstrap `peer`")
+var opts = flag.String("o", "", "Specify misc. `options` separated by commas. Options: nonat, forceupnp, noirc.")
 func main() {
 	flag.Parse()
 	if *dotest != "" {
@@ -22,7 +23,7 @@ func main() {
 	log.Println("Starting rcoind")
 	chain, _ = OpenChain(*datadir + "/rcoin.db")
 	if chain == nil { log.Fatal("Blockchain corrupt") }
-	if *bootstrap != "" { go ConnectPeer(*bootstrap) }
+	if *bootstrap != "" { go ConnectPeer(*bootstrap, true) }
 	if *mining {
 		w := GetWallet("default")
 		if w != nil {
@@ -30,6 +31,8 @@ func main() {
 		}
 	}
 	go ListenPeer(*peeraddr)
+	go PortForward()
+	go PeerDiscover()
 	RPCServer(*rpcport)
 }
 

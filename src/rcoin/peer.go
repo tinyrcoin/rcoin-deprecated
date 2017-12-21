@@ -63,6 +63,7 @@ func Broadcast(c Command, not string) {
 }
 func (p *Peer) Main() {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
+	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
 	for {
 		cmd, err := p.GetCommand()
 		if err != nil {
@@ -109,7 +110,7 @@ func AddPeer(n net.Conn, inbound bool) {
 	delete(peers, n.RemoteAddr().String())
 }
 
-func ConnectPeer(addr string) {
+func ConnectPeer(addr string, save bool) {
 	log.Printf("Connecting to peer %s", addr)
 	n, e := net.Dial("tcp", addr)
 	if e != nil {

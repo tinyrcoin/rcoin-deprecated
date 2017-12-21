@@ -13,3 +13,5 @@ deps:
 	go get -d github.com/syndtr/goleveldb/leveldb
 	go get -d golang.org/x/crypto/scrypt
 	go get -d github.com/vmihailenco/msgpack
+	go get -d github.com/ccding/go-stun/stun
+	go get -d github.com/NebulousLabs/go-upnp
