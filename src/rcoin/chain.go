@@ -54,11 +54,6 @@ func (c *Chain) GetBlock(id int64) *Block {
 	return r
 }
 func (c *Chain) GetDifficulty() (r int) {
-	if c.LastDifficulty == 0 {
-		for i := int64(0); i < c.Height(); i++ {
-			c.getDifficulty(i)
-		}
-	}
 	return c.getDifficulty(c.Height())
 }
 func (c *Chain) getDifficulty(height int64) (r int) {
@@ -68,21 +63,9 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 		if recover() != nil { r = or }
 		if r == 0 { r = 10 }
 	} ()
-	if c.GaveDiff == height {
-		return
-	}
-	c.GaveDiff = height
-	if c.Height() <= 2 {
-		c.LastDifficulty = 10
-		return
-	}
 	blk := c.GetBlock(height - 1)
 	blk2 := c.GetBlock(height - 2)
-	if (blk.Time - blk2.Time) < 25 {
-		c.LastDifficulty = int((float64(c.LastDifficulty)/(float64(blk.Time - blk2.Time))+1)*120)
-	} else if (blk.Time - blk2.Time) >= 25 {
-		c.LastDifficulty = int(float64(c.LastDifficulty)/float64(blk.Time - blk2.Time)*30)
-	}
+	c.LastDifficulty = int((c.Height()*100)/(blk.Time-blk2.Time+1))
 	return
 }
 func (c *Chain) HashToBlockNum(hash []byte) int64 {
