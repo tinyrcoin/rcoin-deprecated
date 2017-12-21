@@ -29,6 +29,12 @@ func Miner(threads int, payout []byte) {
 		log.Printf("Working on block with %d transactions.", len(txs))
 		b := NewBlock()
 		b.TX = txs
+		retry:
+		time.Sleep(time.Second)
+		if chain.GetBlock(chain.Height()-1) == nil {
+			log.Printf("What? block %d is nil!", chain.Height()-1)
+			goto retry
+		}
 		b.LastHash = chain.GetBlock(chain.Height()-1).Hash
 		b.ProofOfWork(chain.GetDifficulty(), threads)
 		b.Time = time.Now().Unix()
