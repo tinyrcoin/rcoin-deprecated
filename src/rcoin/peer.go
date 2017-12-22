@@ -117,8 +117,14 @@ func (p *Peer) Main(addr string) {
 		}
 		switch cmd.Type {
 			case CMD_BLOCK:
+				if chain.HashToBlockNum(cmd.Block.Hash) != -1 { 
+					log.Println("I already have this block")
+					break
+				}
 				if !chain.Verify(&cmd.Block) {
+					_, ok := votes[string(cmd.Block.LastHash)]
 					votes[string(cmd.Block.LastHash)]++
+					if !ok {
 					Broadcast(cmd, p.Conn.RemoteAddr().String())
 					go func() {
 						time.Sleep(15*time.Second)
@@ -133,6 +139,7 @@ func (p *Peer) Main(addr string) {
 						log.Println("Dropping a bad block: failed the voting process: %d approvals.", votes[string(cmd.Block.LastHash)])
 						delete(votes, string(cmd.Block.LastHash))
 					} ()
+					}
 					break
 				}
 				votes[string(cmd.Block.LastHash)]--
