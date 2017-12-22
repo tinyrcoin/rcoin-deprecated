@@ -79,6 +79,13 @@ func Broadcast(c Command, not string) {
 func (p *Peer) Main() {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
+	done := false
+	go func() {
+		for !done {
+			time.Sleep(60*time.Second)
+			p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
+		}
+	} ()
 	for {
 		cmd, err := p.GetCommand()
 		if err != nil {
@@ -88,7 +95,7 @@ func (p *Peer) Main() {
 		switch cmd.Type {
 			case CMD_BLOCK:
 				if !chain.Verify(&cmd.Block) {
-					log.Printf("I got a bad block: dropping (we may have a bad peer or a hard fork occurred)")
+					log.Printf("I got a bad block: dropping (we may have a bad peer or a hard fork occurred) [from %s]", p.Conn.RemoteAddr().String())
 					break
 				}
 				for _, v := range cmd.Block.TX {
@@ -118,6 +125,7 @@ func (p *Peer) Main() {
 			break
 		}
 	}
+	done = true
 }
 
 func AddPeer(n net.Conn, inbound bool) {
