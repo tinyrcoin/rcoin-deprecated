@@ -3,6 +3,7 @@ GOPATH := $(GOPATH2):$(shell pwd)
 export GOPATH
 -include config.mk
 #
+CONFIRM = n
 all: bin bin/rcoind$(EXE)
 debug-gopath:
 	echo Original gopath: $(GOPATH2)
@@ -19,7 +20,11 @@ deps:
 	go get -d github.com/vmihailenco/msgpack
 	go get -d github.com/ccding/go-stun/stun
 	go get -d github.com/NebulousLabs/go-upnp
-
+reset:
+	echo "Are you sure? CONFIRM=$(CONFIRM)"
+	/usr/bin/test "$(CONFIRM)" == "y" || false
+	rm -r $HOME/.rcoin/rcoin.db
+	rm $HOME/.rcoin/peers.txt
 dist-binaries-dir:
 	mkdir -p dist
 dist-binaries: dist-binaries-dir dist-win32 dist-linux dist-mac
