@@ -158,6 +158,7 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 	select {
 	case b.Nonce = <- done:
 		b.SetHash()
+		finished = true
 		fmt.Println("")
 		return
 	default:

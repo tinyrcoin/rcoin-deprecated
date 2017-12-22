@@ -36,8 +36,10 @@ func Miner(threads int, payout []byte) {
 			goto retry
 		}
 		b.LastHash = chain.GetBlock(chain.Height()-1).Hash
+		st := time.Now().Unix()
 		b.ProofOfWork(chain.GetDifficulty(), threads)
 		b.Time = time.Now().Unix()
+		log.Printf("Solved block in %d seconds.", b.Time - st)
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }
 		if !chain.Verify(b) {

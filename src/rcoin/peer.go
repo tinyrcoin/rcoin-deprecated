@@ -162,10 +162,11 @@ func ListenPeer(addr string) {
 	}
 }
 func DbAddPeer(addr string) {
-	peerDb, err := os.OpenFile(*datadir + "/peers.txt", os.O_APPEND|os.O_CREATE, 0755)
+	peerDb, err := os.OpenFile(*datadir + "/peers.txt", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		log.Printf("Warning: can't add peer to database: %v", err)
 	}
+	peerDb.Seek(0,2)
 	fmt.Fprintln(peerDb, addr)
 	peerDb.Close()	
 }

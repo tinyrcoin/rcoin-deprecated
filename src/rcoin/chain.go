@@ -14,6 +14,10 @@ type Chain struct {
 	LastDifficulty int
 	GaveDiff int64
 }
+func max(a, b int64) int64 {
+	if b > a { return a }
+	return b
+}
 func OpenChain(path string) (*Chain, error) {
 	c := new(Chain)
 	db, e := leveldb.OpenFile(path, nil)
@@ -74,7 +78,11 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 	}
 	blk := c.GetBlock(height - 1)
 	blk2 := c.GetBlock(height - 2)
-	c.LastDifficulty = int((height*1000)/((blk.Time-blk2.Time)+1))
+	if (blk.Time-blk2.Time) < 60 {
+	c.LastDifficulty = int((height*4)*(100-max(100,blk.Time-blk2.Time)+1))
+	} else {
+	c.LastDifficulty = int((height*8)/(max(60,blk.Time-blk2.Time)+1))
+	}
 	return
 }
 func (c *Chain) History(a Address, leng int) []Transaction {
