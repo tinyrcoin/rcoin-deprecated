@@ -124,7 +124,7 @@ func (p *Peer) Main(addr string) {
 					break
 				}
 				if !chain.Verify(&cmd.Block) {
-					_, ok := votes[string(cmd.Block.LastHash)]
+					/*_, ok := votes[string(cmd.Block.LastHash)]
 					votes[string(cmd.Block.LastHash)]++
 					if !ok {
 					Broadcast(cmd, p.Conn.RemoteAddr().String())
@@ -137,11 +137,11 @@ func (p *Peer) Main(addr string) {
 						chain.AddBlock(&cmd.Block)
 						delete(votes, string(cmd.Block.LastHash))
 						return
-						}
+						}*/
 						log.Println("Dropping a bad block: failed the voting process: %d approvals.", votes[string(cmd.Block.LastHash)])
-						delete(votes, string(cmd.Block.LastHash))
+					/*	delete(votes, string(cmd.Block.LastHash))
 					} ()
-					}
+					}*/
 					break
 				}
 				votes[string(cmd.Block.LastHash)]--
