@@ -141,7 +141,7 @@ func (p *Peer) Main(addr string) {
 					if !vp.Inbound && v.(*Peer) != p {
 						p.PutCommand(Command{Type:CMD_PEER,Text:k.(string)})
 					}
-					return limit < 25
+					return limit < 30
 				})
 			break
 			case CMD_TX:
@@ -221,6 +221,7 @@ func ListenPeer(addr string) {
 	}
 }
 func DbAddPeer(addr string) {
+	if DbHasPeer(addr) { return }
 	peerDb, err := os.OpenFile(*datadir + "/peers.txt", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		log.Printf("Warning: can't add peer to database: %v", err)

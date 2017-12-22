@@ -32,6 +32,11 @@ func IRCPeerDiscover() {
 			if err != nil {
 				break
 			}
+			if src == "PING" {
+				// who decided this was some weird special case
+				fmt.Fprintf(irc, "PONG %s\r\n", cmd)
+				continue
+			}
 			switch cmd {
 				case "001":
 					fmt.Fprintf(irc, "JOIN #rcoin\r\n")
