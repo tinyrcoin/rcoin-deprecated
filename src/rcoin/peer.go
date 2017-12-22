@@ -147,7 +147,7 @@ func (p *Peer) Main() {
 			break
 			case CMD_PEER:
 				if cmd.A == 1 {
-					DbAddPeer(strings.Split(p.Conn.RemoteAddr().String(), ":")[0] + ":" + cmd.Text)
+					DbAddPeer(strings.Split(p.Conn.RemoteAddr().String(), ":")[0] + cmd.Text)
 					break
 				}
 				if _, ok := peers.Load(cmd.Text); ok { break }
