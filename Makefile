@@ -2,7 +2,7 @@ GOPATH2 := $(shell echo $$GOPATH)
 GOPATH := $(GOPATH2):$(shell pwd)
 export GOPATH
 -include config.mk
-
+#
 all: bin bin/rcoind$(EXE)
 debug-gopath:
 	echo Original gopath: $(GOPATH2)
