@@ -39,13 +39,13 @@ func Miner(threads int, payout []byte) {
 		st := time.Now().Unix()
 		b.ProofOfWork(chain.GetDifficulty(), threads)
 		b.Time = time.Now().Unix()
-		log.Printf("Solved block in %d seconds.", b.Time - st)
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }
 		if !chain.Verify(b) {
 			log.Println("Someone beat me to this block.")
 			continue
 		}
+		log.Printf("Solved block in %d seconds.", b.Time - st)
 		Broadcast(Command{Type:CMD_BLOCK,Block:*b}, "")
 		chain.AddBlock(b)
 	}
