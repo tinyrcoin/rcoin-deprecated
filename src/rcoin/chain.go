@@ -5,6 +5,7 @@ import "fmt"
 type ChainCache struct {
 	balances map[string]int64
 	hashes map[string]int64
+	history map[string][]Transaction
 	height int64
 }
 type Chain struct {
@@ -23,6 +24,7 @@ func OpenChain(path string) (*Chain, error) {
 	}
 	c.Cache.balances = map[string]int64{}
 	c.Cache.hashes = map[string]int64{}
+	c.Cache.history = map[string][]Transaction{}
 	return c, nil
 }
 func (c *Chain) AddRawBlock(data []byte) {
@@ -35,6 +37,8 @@ func (c *Chain) AddBlock(b *Block) {
 	if _, ok := c.Cache.balances[t.From.String()]; ok {
 	c.Cache.balances[t.From.String()] -= t.Amount - t.CalcFee()
 	}
+	if _, ok := c.Cache.history[t.To.String()]; ok { c.Cache.history[t.To.String()] = append(c.Cache.history[t.To.String()], t) }
+	if _, ok := c.Cache.history[t.From.String()]; ok { c.Cache.history[t.From.String()] = append(c.Cache.history[t.From.String()], t) }
 	if _, ok := c.Cache.balances[t.To.String()]; ok {
 	c.Cache.balances[t.To.String()] += t.Amount
 	}
@@ -42,6 +46,7 @@ func (c *Chain) AddBlock(b *Block) {
 	if _, ok := c.Cache.balances[b.RewardTo.String()]; ok {
 	c.Cache.balances[b.RewardTo.String()] += b.CalcReward()
 	}
+	if _, ok := c.Cache.history[b.RewardTo.String()]; ok { c.Cache.history[b.RewardTo.String()] = append(c.Cache.history[b.RewardTo.String()], Transaction{From:make(Address,32),To:b.RewardTo,Amount:b.CalcReward()}) }
 	c.AddRawBlock(b.Encode())
 	c.GetDifficulty()
 }
@@ -63,14 +68,40 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 		if recover() != nil { r = or }
 		if r < 1 { r = 10 } // ?!
 	} ()
-	if c.Height() < 4 {
+	if height < 3 {
 		c.LastDifficulty = 10
 		return
 	}
 	blk := c.GetBlock(height - 1)
 	blk2 := c.GetBlock(height - 2)
-	c.LastDifficulty = int((height*100)/((blk.Time-blk2.Time)+1))
+	c.LastDifficulty = int((height*1000)/((blk.Time-blk2.Time)+1))
 	return
+}
+func (c *Chain) History(a Address, leng int) []Transaction {
+	out := []Transaction(nil)
+	if c.Cache.history[a.String()] != nil {
+		bot := len(c.Cache.history[a.String()])
+		top := bot
+		bot -= leng
+		if bot < 0 { bot = 0 }
+		return c.Cache.history[a.String()][bot:top]
+	}
+	for i := int64(0); i < c.Height(); i++ {
+		blk := c.GetBlock(i)
+		if blk.RewardTo.Equals(a) {
+			out = append(out, Transaction{From:make(Address, 32), To: blk.RewardTo, Amount: blk.CalcReward()})
+		}
+		for _, t := range blk.TX {
+			if t.From.Equals(a) || t.To.Equals(a) {
+				out = append(out, t)
+			}
+		}
+	}
+	c.Cache.history[a.String()] = out
+	top := len(out)
+	st := top - leng
+	if st < 0 { st = 0 }
+	return out[st:top]
 }
 func (c *Chain) HashToBlockNum(hash []byte) int64 {
 	if _, ok := c.Cache.hashes[string(hash)]; !ok {

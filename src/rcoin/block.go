@@ -1,6 +1,7 @@
 
 package main
 import "time"
+import "encoding/json"
 import "math/big"
 import "encoding/base32"
 import "fmt"
@@ -24,6 +25,9 @@ func init() {
 		_ = pub
 	}
 }
+func (a Address) MarshalJSON() []byte {
+	return []byte("\""+a.String()+"\"")
+}
 func (a Address) String() string {
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(a)
 }
@@ -35,10 +39,20 @@ func DecodeAddress(s string) Address {
 	return a
 }
 type Transaction struct {
-	From Address
-	To Address
-	Signature Address
-	Amount int64
+	From Address `json:"from"`
+	To Address `json:"to"`
+	Signature Address `json:"signature"`
+	Amount int64 `json:"amount"`
+}
+func (t *Transaction) MarshalJSON() ([]byte, error) {
+	out := map[string]interface{}{
+		"from": t.From.String(),
+		"to": t.To.String(),
+		"signature": t.Signature.String(),
+		"amount": t.GetAmount(),
+	}
+	b, _ := json.Marshal(out)
+	return b, nil
 }
 func (t *Transaction) CalcFee() int64 {
 	flt := float64(t.Amount)/1000

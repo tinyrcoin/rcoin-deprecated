@@ -46,6 +46,14 @@ func cliStatus(arg1, arg2, arg3 string) {
 		fmt.Printf("%s: %v\n", k, v)
 	}
 }
+func cliHistory(addr, limit, arg3 string) {
+	if addr == "" || addr == "-" { addr = *cli }
+	ret := cliCall("/history?address=" + addr + "&limit=" + limit)
+	for _, v := range ret["transactions"].([]interface{}) {
+		vq := v.(map[string]interface{})
+		fmt.Printf("%s -> %s | %.04f RCN\n", vq["from"], vq["to"], vq["amount"])
+	}
+}
 func cliConsole() {
 	if *cli == "create" {
 		fmt.Printf("New wallet name: ")
@@ -62,9 +70,11 @@ func cliConsole() {
 		"send": "Usage: send <to> <amount>\nSend <amount> coins to <to>.\nI caution you: sending to a bad address will cause you to lose <amount> coins forever!",
 		"exit": "Exit the console",
 		"status": "Show node status",
+		"history": "Usage: history [address|walletname|'-' [limit]]\nShow transaction history for an address (defaults to this wallet).",
 	}
 	fns := map[string]func(a, b, c string) {
 		"info": cliInfo,
+		"history": cliHistory,
 		"exit": func (a, b, c string) { os.Exit(0) },
 		"send": cliSend,
 		"status": cliStatus,

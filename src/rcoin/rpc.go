@@ -15,6 +15,13 @@ func __(a func (r *Req) Reply) (func(http.ResponseWriter, *http.Request)) {
 	return func(w http.ResponseWriter, r *http.Request) { byt, _ := json.MarshalIndent(a(&Req{r}),""," "); w.Write(byt) }
 }
 func RPCServer(addr string) {
+	historyfunc := __(func(r *Req) Reply {
+		addr := DecodeWalletAddress(r.FormValue("address") + r.FormValue("name"))
+		limit := 15
+		fmt.Sscanf(r.FormValue("limit"), "%d", &limit)
+		return Reply{"transactions":chain.History(addr,limit)}
+	})
+	http.HandleFunc("/history", historyfunc)
 	http.HandleFunc("/stat", __(func (r *Req) Reply {
 		return Reply{
 			"difficulty": chain.GetDifficulty(),
@@ -26,6 +33,7 @@ func RPCServer(addr string) {
 	http.HandleFunc("/balance", __(func (r *Req) Reply {
 		return Reply{"balance":chain.GetBalance(DecodeWalletAddress(r.FormValue("address")))}
 	}))
+	http.HandleFunc("/wallet/history", historyfunc)
 	http.HandleFunc("/wallet/send", __(func (r *Req) Reply {
 		if !HasWallet(r.FormValue("name")) {
 			return Reply{"error":"no_wallet"}

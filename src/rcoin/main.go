@@ -11,6 +11,7 @@ var cli = flag.String("cli", "", "Use the basic built in command line interface 
 var datadir = flag.String("data", userhome() + "/.rcoin", "Data `path`")
 var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
+var threads = flag.Int("minerthreads", 2, "Number of threads for mining")
 var rpcport = flag.String("rpc", "127.0.0.1:3009", "RPC listen `port`")
 var peeraddr = flag.String("p2p", ":30009", "P2P `port`")
 var bootstrap = flag.String("boot", "", "Bootstrap `peer`")
@@ -37,8 +38,13 @@ func main() {
 	if *bootstrap != "" { go ConnectPeer(*bootstrap, true) }
 	if *mining {
 		w := GetWallet("default")
+		if w == nil {
+		w = GenerateWallet()
+		log.Println("Auto-generating default wallet.")
+		PutWallet("default", w)
+		}
 		if w != nil {
-			go Miner(2, []byte(w.Private))
+			go Miner(*threads, []byte(w.Private))
 		}
 	}
 	go ListenPeer(*peeraddr)
