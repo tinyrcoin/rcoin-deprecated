@@ -71,6 +71,7 @@ func (p *Peer) GetCommand() (Command, error) {
 	return oc, nil
 }
 func (p *Peer) PutCommand(c Command) error {
+	if p.Out { time.Sleep(1*time.Second) }
 	if p.Out {
 		return fmt.Errorf("Command buffer full")
 	}
@@ -144,7 +145,6 @@ func (p *Peer) Main(addr string) {
 					}*/
 					break
 				}
-				votes[string(cmd.Block.LastHash)]--
 				for _, v := range cmd.Block.TX {
 					unconfirmed.Delete(string(v.Signature))
 				}
