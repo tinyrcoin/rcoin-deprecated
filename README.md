@@ -15,3 +15,11 @@ TODO:
 * Partial nodes without full blockchain
 * Better PoW algorithm
 * Some security fixes
+
+## Details
+
+* Dynamic difficulty based on blockchain height and last 2 block times
+* Keys on Edwards Curve (ed12559)
+* Peer discovery using other peers, IRC, or a specified bootstrap
+
+

@@ -43,6 +43,7 @@ type Transaction struct {
 	To Address `json:"to"`
 	Signature Address `json:"signature"`
 	Amount int64 `json:"amount"`
+	Comment string `json:"comment"`
 }
 func (t *Transaction) MarshalJSON() ([]byte, error) {
 	out := map[string]interface{}{
@@ -50,13 +51,18 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 		"to": t.To.String(),
 		"signature": t.Signature.String(),
 		"amount": t.GetAmount(),
+		"comment": t.Comment,
 	}
 	b, _ := json.Marshal(out)
 	return b, nil
 }
 func (t *Transaction) CalcFee() int64 {
+	if float64(t.Amount)/1000 < 0.01 {
+		return int64(0.01*1000)
+	}
 	flt := float64(t.Amount)/1000
-	return int64(flt*0.015)
+	flt *= 0.015
+	return int64(flt * 1000)
 }
 func (t *Transaction) Encode() []byte {
 	ret, _ := msgpack.Marshal(t)

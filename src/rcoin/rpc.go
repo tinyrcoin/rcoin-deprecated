@@ -44,7 +44,7 @@ func RPCServer(addr string) {
 		if wal.Balance(chain) < amt {
 			return Reply{"error":"no_funds"}
 		}
-		wal.Send(chain, DecodeWalletAddress(r.FormValue("to")), amt)
+		wal.Send(chain, DecodeWalletAddress(r.FormValue("to")), amt, r.FormValue("comment"))
 		return Reply{"success":true}
 	}))
 	http.HandleFunc("/wallet/create", __(func (r *Req) Reply {

@@ -15,9 +15,10 @@ func DecodeWalletAddress(s string) Address {
 func (w *Wallet) Balance(c *Chain) float64 {
 	return c.GetBalance(w.Public)
 }
-func (w *Wallet) Send(c *Chain, a Address, amt float64) {
+func (w *Wallet) Send(c *Chain, a Address, amt float64, comment string) {
 	tx := NewTransaction()
 	tx.SetAmount(amt)
+	tx.Comment = comment
 	tx.To = a
 	tx.Sign(w.Private)
 	unconfirmed.Store(string(tx.Signature), tx)
