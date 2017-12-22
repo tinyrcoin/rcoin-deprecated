@@ -111,9 +111,8 @@ func (p *Peer) Main() {
 		}
 		switch cmd.Type {
 			case CMD_BLOCK:
-				if chain.HashToBlockNum(cmd.Block.Hash) != -1 { break }
 				if !chain.Verify(&cmd.Block) {
-					log.Printf("I got a bad block: dropping (we may have a bad peer or a hard fork occurred) [from %s]", p.Conn.RemoteAddr().String())
+					log.Println("Almost silently dropping bad block.")
 					break
 				}
 				for _, v := range cmd.Block.TX {
