@@ -171,6 +171,9 @@ func (b *Block) ProofOfWork(difficulty int, threads int, cancel *bool) {
 	select {
 	case b.Nonce = <- done:
 		b.SetHash()
+		if cancel != nil {
+		*cancel = true
+		}
 		finished = true
 		fmt.Println("")
 		return

@@ -42,6 +42,9 @@ func Miner(threads int, payout []byte) {
 		go b.ProofOfWork(chain.GetDifficulty(), threads, &cancel)
 		for {
 			time.Sleep(time.Second)
+			if cancel {
+				break
+			}
 			if height != chain.Height() {
 				cancel = true
 				goto cont
