@@ -53,14 +53,14 @@ type PartialNodeBlockchain struct {
 }
 func (p *Peer) GetCommand() (Command, error) {
 	b := make([]byte, 4)
-	_, err := io.ReadAtLeast(p.Conn, b)
+	_, err := io.ReadFull(p.Conn, b)
 	if err != nil { return Command{}, err }
 	i := int(binary.LittleEndian.Uint32(b))
 	if i > (1024*1024*8) {
 		return Command{}, fmt.Errorf("Someone is trying to DoS Me!")
 	}
 	o := make([]byte, i)
-	_, err = io.ReadAtLeast(p.Conn, o)
+	_, err = io.ReadFull(p.Conn, o)
 	if err != nil { return Command{}, err }
 	var oc Command
 	err = msgpack.Unmarshal(o, &oc)
