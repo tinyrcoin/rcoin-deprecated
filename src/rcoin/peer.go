@@ -10,6 +10,8 @@ import "github.com/vmihailenco/msgpack"
 import "sync"
 import "strings"
 import "io/ioutil"
+import "io"
+
 type ConcurrentMap struct {
 	sync.Map
 }
@@ -51,14 +53,14 @@ type PartialNodeBlockchain struct {
 }
 func (p *Peer) GetCommand() (Command, error) {
 	b := make([]byte, 4)
-	_, err := p.Conn.Read(b)
+	_, err := io.ReadAtLeast(p.Conn, b)
 	if err != nil { return Command{}, err }
 	i := int(binary.LittleEndian.Uint32(b))
 	if i > (1024*1024*8) {
 		return Command{}, fmt.Errorf("Someone is trying to DoS Me!")
 	}
 	o := make([]byte, i)
-	_, err = p.Conn.Read(o)
+	_, err = io.ReadAtLeast(p.Conn, o)
 	if err != nil { return Command{}, err }
 	var oc Command
 	err = msgpack.Unmarshal(o, &oc)
@@ -205,10 +207,16 @@ func ConnectPeer(addr string, save bool) {
 }
 
 func ListenPeer(addr string) {
+	tryagain:
 	srv, err := net.Listen("tcp", addr)
 	if err != nil { return }
 	for {
-		peer, _ := srv.Accept()
+		peer, err := srv.Accept()
+		if err != nil {
+			log.Printf("We had an issue with the server: %s", err)
+			srv.Close()
+			goto tryagain
+		}
 		go AddPeer(peer, true)
 	}
 }
