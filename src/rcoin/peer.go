@@ -86,8 +86,8 @@ func Broadcast(c Command, not string) {
 		return true
 	})
 }
-func (p *Peer) Main() {
-	if _, okx := peers.Load(p.Conn.RemoteAddr().String()); okx {
+func (p *Peer) Main(addr string) {
+	if _, okx := peers.Load(p.Conn.RemoteAddr().String()); okx && p.Conn.RemoteAddr().String() != addr {
 		return
 	}
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
@@ -165,11 +165,13 @@ func (p *Peer) Main() {
 	}
 	done = true
 }
-
 func AddPeer(n net.Conn, inbound bool) {
+	AddPeerEx(n.RemoteAddr().String(), n, inbound)
+}
+func AddPeerEx(s string, n net.Conn, inbound bool) {
 	p := &Peer{n,inbound,false}
 	peers.Store(n.RemoteAddr().String(), p)
-	p.Main()
+	p.Main(s)
 	peers.Delete(n.RemoteAddr().String())
 }
 
@@ -192,7 +194,7 @@ func ConnectPeer(addr string, save bool) {
 		continue
 	}
 	if save { DbAddPeer(addr) }
-	AddPeer(n, false)
+	AddPeerEx(addr, n, false)
 	time.Sleep(time.Second*60)
 	}
 }
