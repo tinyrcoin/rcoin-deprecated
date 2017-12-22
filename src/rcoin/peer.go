@@ -22,7 +22,7 @@ func (c *ConcurrentMap) Length() int {
 }
 //var unconfirmed = map[string]*Transaction{}
 var nodeuuid = uuid.NewV4()
-var votes = map[string]ChainVote
+var votes = map[string]ChainVote{}
 const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
@@ -30,6 +30,8 @@ const /*\ COMMAND_TYPES \*/ (
 	CMD_GETBLOCK = 4
 	CMD_SYNC = 5
 	CMD_UUID = 6
+	CMD_VOTE = 7
+	CMD_ASK = 8
 )     /*\ COMMAND_TYPES \*/
 type Command struct {
 	Type uint8 // command type
