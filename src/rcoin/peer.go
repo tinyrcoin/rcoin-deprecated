@@ -128,13 +128,20 @@ func AddPeer(n net.Conn, inbound bool) {
 
 func ConnectPeer(addr string, save bool) {
 	log.Printf("Connecting to peer %s", addr)
+	for {
+	if _, ok := peers.Load(addr); ok {
+		time.Sleep(time.Second*5)
+		continue
+	}
 	n, e := net.Dial("tcp", addr)
 	if e != nil {
-		log.Printf("[peer %s] Failed to connect: %s", addr, e.Error())
-		return
+		time.Sleep(time.Second*60)
+		continue
 	}
 	if save { DbAddPeer(addr) }
 	AddPeer(n, false)
+	time.Sleep(time.Second*60)
+	}
 }
 
 func ListenPeer(addr string) {
