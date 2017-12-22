@@ -128,7 +128,7 @@ func (p *Peer) Main() {
 				peers.Range(func (k, v interface{}) bool {
 					limit++
 					if !v.(*Peer).Inbound && v.(*Peer) != p {
-						p.PutCommand(Command{Type:CMD_PEER,Text:v.(*Peer).Conn.RemoteAddr().String()})
+						p.PutCommand(Command{Type:CMD_PEER,Text:k.(string)})
 					}
 					return limit < 25
 				})
