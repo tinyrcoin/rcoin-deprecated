@@ -37,7 +37,20 @@ func Miner(threads int, payout []byte) {
 		}
 		b.LastHash = chain.GetBlock(chain.Height()-1).Hash
 		st := time.Now().Unix()
-		b.ProofOfWork(chain.GetDifficulty(), threads)
+		cancel := false
+		height := chain.Height()
+		go b.ProofOfWork(chain.GetDifficulty(), threads, &cancel)
+		for {
+			time.Sleep(time.Second)
+			if height != chain.Height() {
+				cancel = true
+				goto cont
+			}
+		}
+		goto skip
+		cont:
+			continue
+		skip:
 		b.Time = time.Now().Unix()
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }

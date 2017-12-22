@@ -12,7 +12,7 @@ type Address []byte
 func init() {
 	tests["mine"] = func() {
 		blk := NewBlock()
-		blk.ProofOfWork(10000,2)
+		blk.ProofOfWork(10000,2,nil)
 		fmt.Printf("%x\n", blk.Hash)
 	}
 	tests["verify"] = func() {
@@ -144,7 +144,7 @@ func (b *Block) SetHash() {
 	b.Signature = osig
 	b.Hash = ret
 }
-func (b *Block) ProofOfWork(difficulty int, threads int) {
+func (b *Block) ProofOfWork(difficulty int, threads int, cancel *bool) {
 	null64 := make([]byte, 64)
 	b.Signature = make([]byte, 64)
 	b.Nonce = 0
@@ -175,6 +175,11 @@ func (b *Block) ProofOfWork(difficulty int, threads int) {
 		fmt.Println("")
 		return
 	default:
+		if cancel != nil && *cancel {
+			finished = true
+			fmt.Printf("\r                                         \n")
+			return
+		}
 		time.Sleep(1 * time.Second)
 		fmt.Printf("\r %d hashes/second.", hashes)
 		hashes = 0

@@ -89,7 +89,7 @@ func Broadcast(c Command, not string) {
 func (p *Peer) Main() {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
-	if !IsNatted() {
+	if !IsNatted() && !p.Inbound {
 		p.PutCommand(Command{Type:CMD_PEER,Text:":"+strings.Split(*peeraddr,":")[1],A:1})
 	}
 	done := false
@@ -108,6 +108,7 @@ func (p *Peer) Main() {
 		}
 		switch cmd.Type {
 			case CMD_BLOCK:
+				if chain.HashToBlockNum(&cmd.Block) == -1 { break }
 				if !chain.Verify(&cmd.Block) {
 					log.Printf("I got a bad block: dropping (we may have a bad peer or a hard fork occurred) [from %s]", p.Conn.RemoteAddr().String())
 					break
@@ -127,7 +128,8 @@ func (p *Peer) Main() {
 				unconfirmed.Range(func (k, v interface{}) bool { p.PutCommand(Command{Type:CMD_TX,TX:*(v.(*Transaction))}); return true })
 				peers.Range(func (k, v interface{}) bool {
 					limit++
-					if !v.(*Peer).Inbound && v.(*Peer) != p {
+					vp := v.(*Peer)
+					if !vp.Inbound && v.(*Peer) != p {
 						p.PutCommand(Command{Type:CMD_PEER,Text:k.(string)})
 					}
 					return limit < 25
