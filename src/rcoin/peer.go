@@ -87,9 +87,6 @@ func Broadcast(c Command, not string) {
 	})
 }
 func (p *Peer) Main(addr string) {
-	if _, okx := peers.Load(p.Conn.RemoteAddr().String()); okx && p.Conn.RemoteAddr().String() != addr {
-		return
-	}
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
 	if !IsNatted() && !p.Inbound {
