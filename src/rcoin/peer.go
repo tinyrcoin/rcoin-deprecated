@@ -118,6 +118,8 @@ func (p *Peer) Main(addr string) {
 		switch cmd.Type {
 			case CMD_BLOCK:
 				if chain.HashToBlockNum(cmd.Block.Hash) != -1 { 
+					_, ok := votes[string(cmd.Block.LastHash)]
+					if ok { votes[string(cmd.Block.LastHash)]++ }
 					log.Println("I already have this block")
 					break
 				}
