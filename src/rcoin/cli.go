@@ -38,7 +38,11 @@ func cliSend(to, amtstr, arg3 string) {
 		fmt.Println("Usage: send <to> <amount>")
 		return
 	}
-	cliCall("/wallet/send?name=" + *cli + "&to=" + to + "&amount=" + amtstr)
+	ret := cliCall("/wallet/send?name=" + *cli + "&to=" + to + "&amount=" + amtstr)
+	if ret["error"] != nil {
+		fmt.Println("Couldn't send coins: not enough funds.")
+		return
+	}
 	fmt.Println("Sent coins.")
 }
 func cliStatus(arg1, arg2, arg3 string) {

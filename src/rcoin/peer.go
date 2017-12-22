@@ -18,12 +18,6 @@ func (c *ConcurrentMap) Length() int {
 	return i
 }
 //var unconfirmed = map[string]*Transaction{}
-var unconfirmed = new(ConcurrentMap)
-type Peer struct {
-	Conn net.Conn
-	Inbound bool
-}
-var peers = new(ConcurrentMap)
 const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
@@ -42,6 +36,13 @@ type Command struct {
 	// if this struct changed the protocol will break horribly
 	// just a nice little warning
 }
+var unconfirmed = new(ConcurrentMap)
+type Peer struct {
+	Conn net.Conn
+	Inbound bool
+	Out bool
+}
+var peers = new(ConcurrentMap)
 type PartialNodeBlockchain struct {
 	// TODO: Partial node blockchain
 }
@@ -61,7 +62,16 @@ func (p *Peer) GetCommand() (Command, error) {
 	if err != nil { return Command{}, err }
 	return oc, nil
 }
-func (p *Peer) PutCommand(c Command) {
+func (p *Peer) PutCommand(c Command) error {
+	if p.Out {
+		return fmt.Errorf("Command buffer full")
+	}
+	p.Out = true
+	p.putCommand(c)
+	p.Out = false
+	return nil
+}
+func (p *Peer) putCommand(c Command) {
 	b := make([]byte, 4)
 	o, _ := msgpack.Marshal(&c)
 	binary.LittleEndian.PutUint32(b, uint32(len(o)))
@@ -79,7 +89,11 @@ func Broadcast(c Command, not string) {
 func (p *Peer) Main() {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
+	if !IsNatted() {
+		p.PutCommand(Command{Type:CMD_PEER,Text:":"+strings.Split(*peeraddr,":")[1],A:1})
+	}
 	done := false
+	p.Out = false
 	go func() {
 		for !done {
 			time.Sleep(60*time.Second)
@@ -109,7 +123,15 @@ func (p *Peer) Main() {
 					if chain.GetBlock(i) == nil { continue }
 					if i < chain.Height() { p.PutCommand(Command{Type:CMD_BLOCK,Block:*(chain.GetBlock(i))}) }
 				}
+				limit := 0
 				unconfirmed.Range(func (k, v interface{}) bool { p.PutCommand(Command{Type:CMD_TX,TX:*(v.(*Transaction))}); return true })
+				peers.Range(func (k, v interface{}) bool {
+					limit++
+					if !v.(*Peer).Inbound && v.(*Peer) != p {
+						p.PutCommand(Command{Type:CMD_PEER,Text:v.(*Peer).Conn.RemoteAddr().String()})
+					}
+					return limit < 25
+				})
 			break
 			case CMD_TX:
 				if !cmd.TX.Verify() {
@@ -123,13 +145,25 @@ func (p *Peer) Main() {
 				}
 				Broadcast(cmd, p.Conn.RemoteAddr().String())
 			break
+			case CMD_PEER:
+				if cmd.A == 1 {
+					DbAddPeer(strings.Split(p.Conn.RemoteAddr().String(), ":")[0] + ":" + cmd.Text)
+					break
+				}
+				if _, ok := peers.Load(cmd.Text); ok { break }
+				if peers.Length() < 50 {
+					go ConnectPeer(cmd.Text, true)
+					break
+				}
+				DbAddPeer(cmd.Text)
+			break
 		}
 	}
 	done = true
 }
 
 func AddPeer(n net.Conn, inbound bool) {
-	p := &Peer{n,inbound}
+	p := &Peer{n,inbound,false}
 	peers.Store(n.RemoteAddr().String(), p)
 	p.Main()
 	peers.Delete(n.RemoteAddr().String())

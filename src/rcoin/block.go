@@ -57,8 +57,15 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 func (t *Transaction) CalcFee() int64 {
-	if float64(t.Amount)/1000 < 0.01 {
-		return int64(0.01*1000)
+	return t.CalcFeeText()+t.CalcFeePercent()
+}
+func (t *Transaction) CalcFeeText() int64 {
+	f := float64(float64(len(t.Comment))*0.01)
+	return int64(f * 1000)
+}
+func (t *Transaction) CalcFeePercent() int64 {
+	if float64(t.Amount)/1000 < 0.001 {
+		return int64(0.001*1000)
 	}
 	flt := float64(t.Amount)/1000
 	flt *= 0.015
