@@ -87,6 +87,9 @@ func Broadcast(c Command, not string) {
 	})
 }
 func (p *Peer) Main() {
+	if _, okx := peers.Load(p.Conn.RemoteAddr().String()); okx {
+		return
+	}
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
 	if !IsNatted() && !p.Inbound {
@@ -172,6 +175,9 @@ func AddPeer(n net.Conn, inbound bool) {
 }
 
 func ConnectPeer(addr string, save bool) {
+	if strings.HasPrefix(addr, "10.") || strings.HasPrefix(addr, "172.16.") || strings.HasPrefix(addr, "192.168.") {
+		return
+	}
 	if _, ok := peers.Load(addr); ok {
 		return
 	}
