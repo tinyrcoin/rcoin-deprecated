@@ -170,6 +170,9 @@ func AddPeer(n net.Conn, inbound bool) {
 }
 
 func ConnectPeer(addr string, save bool) {
+	if _, ok := peers.Load(addr); ok {
+		return
+	}
 	log.Printf("Connecting to peer %s", addr)
 	for {
 	if _, ok := peers.Load(addr); ok {
