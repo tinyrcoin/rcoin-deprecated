@@ -2,6 +2,7 @@ package main
 import "github.com/syndtr/goleveldb/leveldb"
 import "github.com/syndtr/goleveldb/leveldb/util"
 import "fmt"
+type ChainVote int64
 type ChainCache struct {
 	balances map[string]int64
 	hashes map[string]int64

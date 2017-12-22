@@ -22,6 +22,7 @@ func (c *ConcurrentMap) Length() int {
 }
 //var unconfirmed = map[string]*Transaction{}
 var nodeuuid = uuid.NewV4()
+var votes = map[string]ChainVote
 const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
@@ -115,9 +116,24 @@ func (p *Peer) Main(addr string) {
 		switch cmd.Type {
 			case CMD_BLOCK:
 				if !chain.Verify(&cmd.Block) {
-					log.Println("Almost silently dropping bad block.")
+					votes[string(cmd.Block.LastHash)]++
+					Broadcast(cmd, p.Conn.RemoteAddr().String())
+					go func() {
+						time.Sleep(15*time.Second)
+						if votes[string(cmd.Block.LastHash)] > 0 {
+						for _, v := range cmd.Block.TX {
+							unconfirmed.Delete(string(v.Signature))
+						}
+						chain.AddBlock(&cmd.Block)
+						delete(votes, string(cmd.Block.LastHash))
+						return
+						}
+						log.Println("Dropping a bad block: failed the voting process: %d approvals.", votes[string(cmd.Block.LastHash)])
+						delete(votes, string(cmd.Block.LastHash))
+					} ()
 					break
 				}
+				votes[string(cmd.Block.LastHash)]--
 				for _, v := range cmd.Block.TX {
 					unconfirmed.Delete(string(v.Signature))
 				}
