@@ -23,8 +23,8 @@ deps:
 reset:
 	echo "Are you sure? CONFIRM=$(CONFIRM)"
 	/usr/bin/test "$(CONFIRM)" == "y" || false
-	rm -r $HOME/.rcoin/rcoin.db
-	rm $HOME/.rcoin/peers.txt
+	rm -r $(HOME)/.rcoin/rcoin.db
+	rm $(HOME)/.rcoin/peers.txt
 dist-binaries-dir:
 	mkdir -p dist
 dist-binaries: dist-binaries-dir dist-win32 dist-linux dist-mac
