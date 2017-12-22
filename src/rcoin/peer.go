@@ -1,4 +1,5 @@
 package main
+import "github.com/satori/go.uuid"
 import "log"
 import "os"
 import "time"
@@ -18,12 +19,14 @@ func (c *ConcurrentMap) Length() int {
 	return i
 }
 //var unconfirmed = map[string]*Transaction{}
+var nodeuuid = uuid.NewV4()
 const /*\ COMMAND_TYPES \*/ (
 	CMD_BLOCK = 1
 	CMD_TX = 2
 	CMD_PEER = 3
 	CMD_GETBLOCK = 4
 	CMD_SYNC = 5
+	CMD_UUID = 6
 )     /*\ COMMAND_TYPES \*/
 type Command struct {
 	Type uint8 // command type
@@ -89,6 +92,7 @@ func Broadcast(c Command, not string) {
 func (p *Peer) Main(addr string) {
 	p.PutCommand(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
 	Broadcast(Command{Type:CMD_PEER,Text:p.Conn.RemoteAddr().String()}, p.Conn.RemoteAddr().String())
+	p.PutCommand(Command{Type:CMD_UUID,Text:nodeuuid.String()})
 	if !IsNatted() && !p.Inbound {
 		p.PutCommand(Command{Type:CMD_PEER,Text:":"+strings.Split(*peeraddr,":")[1],A:1})
 	}
@@ -117,6 +121,10 @@ func (p *Peer) Main(addr string) {
 				}
 				chain.AddBlock(&cmd.Block)
 				Broadcast(cmd, p.Conn.RemoteAddr().String())
+			break
+			case CMD_UUID:
+				if cmd.Text == nodeuuid.String() { goto end }
+				log.Println("Connected to " + addr)
 			break
 			case CMD_SYNC:
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
@@ -160,6 +168,7 @@ func (p *Peer) Main(addr string) {
 			break
 		}
 	}
+	end:
 	done = true
 }
 func AddPeer(n net.Conn, inbound bool) {
@@ -179,7 +188,6 @@ func ConnectPeer(addr string, save bool) {
 	if _, ok := peers.Load(addr); ok {
 		return
 	}
-	log.Printf("Connecting to peer %s", addr)
 	for {
 	if _, ok := peers.Load(addr); ok {
 		time.Sleep(time.Second*5)

@@ -6,6 +6,7 @@ type ChainCache struct {
 	balances map[string]int64
 	hashes map[string]int64
 	history map[string][]Transaction
+	transactions map[string]bool
 	height int64
 }
 type Chain struct {
@@ -29,6 +30,7 @@ func OpenChain(path string) (*Chain, error) {
 	c.Cache.balances = map[string]int64{}
 	c.Cache.hashes = map[string]int64{}
 	c.Cache.history = map[string][]Transaction{}
+	c.Cache.transactions = map[string]bool{}
 	return c, nil
 }
 func (c *Chain) AddRawBlock(data []byte) {
@@ -37,7 +39,9 @@ func (c *Chain) AddRawBlock(data []byte) {
 	c.Cache.height++
 }
 func (c *Chain) AddBlock(b *Block) {
+	c.HasTransaction(Address{})
 	for _, t := range b.TX {
+	c.Cache.transactions[t.Signature.String()] = true
 	if _, ok := c.Cache.balances[t.From.String()]; ok {
 	c.Cache.balances[t.From.String()] -= t.Amount - t.CalcFee()
 	}
@@ -84,6 +88,15 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 	c.LastDifficulty = int((height*8)/(max(60,blk.Time-blk2.Time)+1))
 	}
 	return
+}
+func (c *Chain) HasTransaction(s Address) bool {
+	if len(c.Cache.transactions) == 0 {
+		for i := int64(0); i < c.Height(); i++ {
+			k := c.GetBlock(i)
+			for _, t := range k.TX { c.Cache.transactions[t.Signature.String()] = true }
+		}
+	}
+	return c.Cache.transactions[s.String()]
 }
 func (c *Chain) History(a Address, leng int) []Transaction {
 	out := []Transaction(nil)
@@ -150,6 +163,10 @@ func (c *Chain) Verify(b *Block) bool {
 	if c.GetBalanceRaw(v.From) < v.Amount {
 		return false
 	}
+	if c.Height() > 30 && c.HasTransaction(v.Signature) {
+		return false
+	}
+	if !v.Verify() { return false }
 	}
 	return true
 }
