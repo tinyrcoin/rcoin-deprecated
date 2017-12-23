@@ -35,7 +35,7 @@ type Command struct {
 	Block Block
 	TX Transaction
 	RangeStart, RangeEnd int64
-	
+	A int64	
 	Type int
 }
 func Broadcast(c Command) {
@@ -87,6 +87,7 @@ func InitPeerFramework() {
 			log.Println(err)
 			log.Fatal("Lost connection with peers")
 		}
+		go func() {
 		var cmd Command
 		err = msgpack.Unmarshal(data, &cmd)
 		if err != nil {
@@ -100,6 +101,7 @@ func InitPeerFramework() {
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
 					Broadcast(Command{To:cmd.From,Type:CMD_BLOCK,Block:*(chain.GetBlock(i))})
 				}
+				if cmd.A == 0 { Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height()}) }
 			break
 			case CMD_BLOCK:
 				if !chain.Verify(&cmd.Block) {
@@ -118,5 +120,6 @@ func InitPeerFramework() {
 				unconfirmed.Store(string(cmd.TX.Signature), &cmd.TX)
 			break
 		}
+		} ()
 	}
 }
