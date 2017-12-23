@@ -121,6 +121,8 @@ func InitPeerFramework() {
 				}
 				if cmd.A == 0 {
 					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height(),A:1}) 
+				}
+				if cmd.RangeStart != chain.Height() {
 					log.Printf("peer: Syncing with %s (their blockchain height: %d, my height: %d)\n", cmd.From, cmd.RangeStart, chain.Height())
 				}
 			break
