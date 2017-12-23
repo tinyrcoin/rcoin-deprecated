@@ -108,6 +108,7 @@ func InitPeerFramework() {
 					log.Printf("Bad block from %s", cmd.From)
 					break
 				}
+				log.Printf("New block height: %d", chain.Height()+1)
 				for _, t := range cmd.Block.TX {
 					unconfirmed.Delete(string(t.Signature))
 				}
