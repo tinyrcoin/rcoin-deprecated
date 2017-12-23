@@ -92,8 +92,12 @@ func InitPeerFramework() {
 		log.Println(err)
 		log.Fatal("Couldn't initialize peer framework")
 	}
-	Broadcast(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
-
+	go func() {
+		for {
+			Broadcast(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
+			time.Sleep(10*time.Second)
+		}
+	} ()
 	br = bufio.NewReader(resp.Body)
 	for {
 		data, err := getMessage()
@@ -121,6 +125,10 @@ func InitPeerFramework() {
 				}
 			break
 			case CMD_BLOCK:
+				if chain.HashToBlockNum(cmd.Block.Hash) != -1 {
+					log.Printf("Repeated block.")
+					break
+				}
 				if !chain.Verify(&cmd.Block) {
 					log.Printf("Bad block from %s", cmd.From)
 					break
