@@ -27,7 +27,7 @@ func RPCServer(addr string) {
 			"difficulty": chain.GetDifficulty(),
 			"unconfirmed": unconfirmed.Length(),
 			"height": chain.Height(),
-			"peers": peers.Length(),
+			"peers": -1,
 		}
 	}))
 	http.HandleFunc("/balance", __(func (r *Req) Reply {

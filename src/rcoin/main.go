@@ -13,8 +13,8 @@ var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
 var threads = flag.Int("minerthreads", 2, "Number of threads for mining")
 var rpcport = flag.String("rpc", "127.0.0.1:3009", "RPC listen `port`")
-var peeraddr = flag.String("p2p", ":30009", "P2P `port`")
-var bootstrap = flag.String("boot", "", "Bootstrap `peer`")
+var pra = ""
+var peeraddr = &pra
 var opts = flag.String("o", "", "Specify misc `options` separated by commas. Options: nonat, forceupnp, noirc.")
 func main() {
 	flag.Parse()
@@ -31,11 +31,11 @@ func main() {
 	}
 	os.Mkdir(*datadir, 0755)
 	log.Println("Starting rcoind")
-	log.Printf("Listen on %s", *peeraddr)
+
 	log.Printf("RPC: %s", *rpcport)
 	chain, _ = OpenChain(*datadir + "/rcoin.db")
 	if chain == nil { log.Fatal("Blockchain corrupt") }
-	if *bootstrap != "" { go ConnectPeer(*bootstrap, true) }
+	go InitPeerFramework()
 	if *mining {
 		w := GetWallet("default")
 		if w == nil {
@@ -47,10 +47,6 @@ func main() {
 			go Miner(*threads, []byte(w.Private))
 		}
 	}
-	go ListenPeer(*peeraddr)
-	go DbConnectPeers()
-	go PortForward()
-	go PeerDiscover()
 	RPCServer(*rpcport)
 }
 

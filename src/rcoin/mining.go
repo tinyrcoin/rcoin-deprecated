@@ -2,10 +2,10 @@
 package main
 import "time"
 import "log"
+var del = []string{}
 func GetTransactions() []Transaction {
 	if unconfirmed.Length() == 0 { return nil }
 	ret := []Transaction(nil)
-	del := []string(nil)
 	unconfirmed.Range(func(kk, vv interface{}) bool {
 		k := kk.(string)
 		v := vv.(*Transaction)
@@ -14,10 +14,13 @@ func GetTransactions() []Transaction {
 		del = append(del, k)
 		return true
 	})
+	return ret
+}
+func PurgeOld() {
 	for _, v := range del {
 		unconfirmed.Delete(v)
 	}
-	return ret
+	del = []string{}
 }
 
 func Miner(threads int, payout []byte) {
@@ -61,8 +64,9 @@ func Miner(threads int, payout []byte) {
 			log.Println("Someone beat me to this block.")
 			continue
 		}
+		PurgeOld()
 		log.Printf("Solved block in %d seconds.", b.Time - st)
-		Broadcast(Command{Type:CMD_BLOCK,Block:*b}, "")
+		Broadcast(Command{Type:CMD_BLOCK,Block:*b})
 		chain.AddBlock(b)
 	}
 }

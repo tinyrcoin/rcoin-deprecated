@@ -22,8 +22,9 @@ func (w *Wallet) Send(c *Chain, a Address, amt float64, comment string) {
 	tx.Comment = uuid.NewV4().String() + "|" + comment
 	tx.To = a
 	tx.Sign(w.Private)
+	if !tx.Verify() { return }
 	unconfirmed.Store(string(tx.Signature), tx)
-	Broadcast(Command{Type:CMD_TX,TX:*tx},"")
+	Broadcast(Command{Type:CMD_TX,TX:*tx})
 }
 func GenerateWallet() (w *Wallet) {
 	w = new(Wallet)

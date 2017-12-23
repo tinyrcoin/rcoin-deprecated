@@ -22,4 +22,7 @@ TODO:
 * Keys on Edwards Curve (ed12559)
 * Peer discovery using other peers, IRC, or a specified bootstrap
 
+## Requirements
 
+* Golang 1.9+
+* IPFS (running with --enable-pubsub-experiment)
