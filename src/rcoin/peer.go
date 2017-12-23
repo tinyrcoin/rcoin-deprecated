@@ -51,7 +51,9 @@ func decodeMessage(in string) []byte {
 	return d
 }
 func sendMessage(msg string) {
-	http.Get(*ipfsapi + "pub?arg=" + ROOM + "&arg=" + url.QueryEscape(msg))
+	k, e := http.Get(*ipfsapi + "pub?arg=" + ROOM + "&arg=" + url.QueryEscape(msg))
+	if e != nil { return }
+	k.Body.Close()
 }
 func getMessage() ([]byte, error) {
 	loop:
