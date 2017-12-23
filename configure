@@ -3,8 +3,9 @@ fail() { echo "failed"; exit 1; }
 printf "Looking for Go compiler..."
 which go || fail
 printf "Checking version..."
-go version || fail
-
+go version | sed 's/.*1/1/g' | sed 's/ .*//g' || fail
+printf "Looking for ipfs..."
+which ipfs || fail
 if [ "$(go version | grep windows)" != "" ]; then
 	echo "EXE ?= .exe" > config.mk
 else

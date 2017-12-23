@@ -21,6 +21,7 @@ func (c *ConcurrentMap) Length() int {
 	return o
 }
 var br *bufio.Reader
+var brp *bufio.Reader
 var myid = uuid.NewV4().String()
 const ROOM = "rcoin"
 var ipfsapi = flag.String("ipfs", "http://127.0.0.1:5001/api/v0/pubsub/", "IPFS API Pubsub Endpoint")
@@ -52,6 +53,11 @@ func decodeMessage(in string) []byte {
 }
 func sendMessage(msg string) {
 	k, e := http.Get(*ipfsapi + "pub?arg=" + ROOM + "&arg=" + url.QueryEscape(msg))
+	if e != nil { return }
+	k.Body.Close()
+}
+func sendMessageTo(to string, msg string) {
+	k, e := http.Get(*ipfsapi + "pub?arg=" + to + "&arg=" + url.QueryEscape(msg))
 	if e != nil { return }
 	k.Body.Close()
 }
