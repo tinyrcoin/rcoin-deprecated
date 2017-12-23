@@ -80,7 +80,8 @@ func InitPeerFramework() {
 	if err != nil {
 		if !tries {
 			tries = true
-			exec.Command("ipfs", "--init", "--enable-pubsub-experiment").Start()
+			exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment").Start()
+			time.Sleep(1500*time.Millisecond)
 			goto retr
 		}
 		log.Println(err)

@@ -13,3 +13,5 @@ else
 fi
 
 make deps
+
+echo "RCoin is now configured and ready for usage."
