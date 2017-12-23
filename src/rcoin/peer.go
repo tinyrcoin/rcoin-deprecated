@@ -13,7 +13,6 @@ import (
 	"flag"
 	"github.com/vmihailenco/msgpack"
 	"os/exec"
-	"os"
 )
 type ConcurrentMap struct { sync.Map }
 var unconfirmed = new(ConcurrentMap)
