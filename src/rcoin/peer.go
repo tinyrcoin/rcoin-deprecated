@@ -13,6 +13,7 @@ import (
 	"flag"
 	"github.com/vmihailenco/msgpack"
 	"os/exec"
+	"os"
 )
 type ConcurrentMap struct { sync.Map }
 var unconfirmed = new(ConcurrentMap)
@@ -81,7 +82,10 @@ func InitPeerFramework() {
 	if err != nil {
 		if !tries {
 			tries = true
-			exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment").Start()
+			c := exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment")
+			c.Stdout = os.Stderr
+			c.Stderr = os.Stderr
+			c.Start()
 			time.Sleep(1500*time.Millisecond)
 			goto retr
 		}
