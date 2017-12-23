@@ -92,10 +92,10 @@ func InitPeerFramework() {
 		err = msgpack.Unmarshal(data, &cmd)
 		if err != nil {
 			log.Println("Got corrupt message")
-			continue
+			return
 		}
-		if cmd.From == myid { continue }
-		if cmd.To != "" && cmd.To != myid { continue }
+		if cmd.From == myid {return }
+		if cmd.To != "" && cmd.To != myid {return }
 		switch cmd.Type {
 			case CMD_SYNC:
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
