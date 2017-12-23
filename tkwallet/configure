@@ -1,0 +1,11 @@
+#!/bin/sh
+fail() { echo "failed"; exit 1; }
+printf 'Looking for wish...'; which wish || (
+	printf 'failed\nLooking for tclsh with Tk package...'; which tclsh || exit 1
+	echo "exit [catch {package require Tk}]" | tclsh || exit 1
+) || (
+	printf 'failed\nLooking for tclkit with Tk package...'; which tclkit || exit 1
+	echo "exit [catch {package require Tk}]" | tclkit || exit 1
+) || fail
+
+echo "Your system has the appropriate configuration to run TkWallet"
