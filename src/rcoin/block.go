@@ -110,6 +110,18 @@ type Block struct {
 	TX []Transaction
 	Time int64
 }
+func (b *Block) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"previous":fmt.Sprintf("%x", b.LastHash),
+		"hash":fmt.Sprintf("%x",b.Hash),
+		"nonce":b.Nonce,
+		"reward":float64(b.CalcReward())/1000,
+		"rewardto":b.RewardTo.String(),
+		"signature":b.Signature.String(),
+		"transactions":b.TX,
+		"timestamp":b.Time,
+	})
+}
 func (b *Block) CalcReward() (r int64) {
 	r = 25 * 1000
 	for _, v := range b.TX { r += v.CalcFee() }

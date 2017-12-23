@@ -21,6 +21,15 @@ func RPCServer(addr string) {
 		fmt.Sscanf(r.FormValue("limit"), "%d", &limit)
 		return Reply{"transactions":chain.History(addr,limit)}
 	})
+	http.HandleFunc("/block/info", __(func (r *Req) Reply {
+		blkid := int64(0)
+		fmt.Sscanf(r.FormValue("id"), "%d", &blkid)
+		if blkid < 0 || blkid > chain.Height() {
+			return Reply{"error":"no such block"}
+		}
+		blk := chain.GetBlock(blkid)
+		return Reply{"block":blk}
+	}))
 	http.HandleFunc("/history", historyfunc)
 	http.HandleFunc("/stat", __(func (r *Req) Reply {
 		return Reply{
