@@ -2,6 +2,7 @@
 package main
 import "time"
 import "log"
+import mrand "math/rand"
 var del = []string{}
 func GetTransactions() []Transaction {
 	if unconfirmed.Length() == 0 { return nil }
@@ -60,6 +61,7 @@ func Miner(threads int, payout []byte) {
 		b.Time = time.Now().Unix()
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }
+		time.Sleep(time.Duration(mrand.Int63n(4000)+500)*time.Millisecond)
 		if !chain.Verify(b) {
 			log.Println("Someone beat me to this block.")
 			continue

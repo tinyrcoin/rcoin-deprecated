@@ -14,6 +14,7 @@ import (
 	"flag"
 	"github.com/vmihailenco/msgpack"
 	"os/exec"
+	"os"
 )
 type ConcurrentMap struct { sync.Map }
 var unconfirmed = new(ConcurrentMap)
@@ -77,6 +78,7 @@ func getMessage() ([]byte, error) {
 }
 func InitPeerFramework() {
 	tries := 0
+	os.Setenv("IPFS_PATH", *datadir + "/ipfs.db")
 	retr:
 	resp, err := http.Get(*ipfsapi + "sub?arg=" + ROOM + "&discover=true")
 	if err != nil {

@@ -1,5 +1,16 @@
 package require http
 package require Tk 8.5
+proc scrolled w {
+set pa [set pa0 [winfo parent $w]]
+if {$pa eq "."} {set pa ""}
+grid $w [scrollbar $pa.y -command "$w yview"] -sticky news
+$w configure -xscrollcommand "$pa.x set" -yscrollcommand "$pa.y set"
+grid $pa.y -sticky ns
+grid [scrollbar $pa.x -ori hori -command "$w xview"] -sticky ew
+grid columnconfigure $pa0 0 -weight 1
+grid rowconfigure    $pa0 0 -weight 1
+}
+
 wm title . "RCoin Wallet"
 wm geometry . 720x480
 set node "http://127.0.0.1:3009"
@@ -10,10 +21,13 @@ if [info exists env(WALLETRPC)] {
 if {[catch {
 	http::cleanup [http::geturl "$node/stat"]
 }]} {
-	if {[catch {exec rcoind &}]} {
-		catch {exec [file dirname [info nameofexecutable]]/rcoind &}
+	append ::env(PATH) "$tcl_platform(pathSeparator)[pwd]"
+	if {[catch {set pq [open "|rcoind 2>@stderr" r+]}]} {
+		catch {set pq [open "[file dirname [info nameofexecutable]]/rcoind 2>@stderr" r+]}
 	}
+	fcopy $pq stderr -command null
 }
+proc null args return
 proc jsonDecode {json {indexVar {}}} {
     # Link to the caller's index variable.
     if {$indexVar ne {}} {
@@ -160,6 +174,7 @@ proc getwltinfo {} {
 	array set r [apicall "/wallet/history?name=$::wltname"]
 	set wlthist2 {}
 	foreach y $r(transactions) {
+		if {$y eq "null"} continue
 		array set q $y
 		if {$q(from) eq $::wltaddr} {
 			set ln "Sent $q(amount) RCN to $q(to)"
@@ -236,3 +251,38 @@ Warning: please make sure the "Send to" address is
 correct otherwise your sent coins could be lost forever
 } -fg red -font {tkButtonFont -16}
 pack .tabs.send.warning
+frame .tabs.search
+.tabs add .tabs.search -text "Search Transactions"
+frame .tabs.search.top
+label .tabs.search.top.l -text "Address:"
+entry .tabs.search.top.a -textvariable searchaddr
+pack .tabs.search.top.l -side left
+pack .tabs.search.top.a -side right -fill x -expand yes
+frame .tabs.search.x
+set searchret {}
+listbox .tabs.search.x.list -listvariable searchret
+scrolled .tabs.search.x.list
+pack .tabs.search.top -fill x
+pack .tabs.search.x -expand yes -fill both
+bind .tabs.search.top.a <Return> {
+	apply {{} {
+	array set r [apicall "/history?address=$::searchaddr&limit=250"]
+	set wlthist2 {}
+	foreach y $r(transactions) {
+		catch {
+		array set q $y
+		if {$q(from) eq $::wltaddr} {
+			set ln "Sent $q(amount) RCN to $q(to)"
+		} elseif {$q(from) eq [string repeat A 52]} {
+			set ln "Mined one block with $q(amount) RCN reward"
+		} else {
+			set ln "Received $q(amount) RCN from $q(from)"
+		}
+		lappend wlthist2 $ln
+		}
+	}
+	set ::searchret $wlthist2
+	}}
+}
+bind . <Destroy> exit
+raise .
