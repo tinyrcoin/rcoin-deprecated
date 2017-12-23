@@ -7,6 +7,13 @@ set wallet "default"
 if [info exists env(WALLETRPC)] {
 	set node $env(WALLETRPC)
 }
+if {[catch {
+	http::cleanup [http::geturl "$node/stat"]
+}]} {
+	if {[catch {exec rcoind &}]} {
+		catch {exec [file dirname [info nameofexecutable]]/rcoind &}
+	}
+}
 proc jsonDecode {json {indexVar {}}} {
     # Link to the caller's index variable.
     if {$indexVar ne {}} {

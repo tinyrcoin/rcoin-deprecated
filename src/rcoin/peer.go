@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"time"
 	"log"
 	"net/http"
@@ -83,6 +84,8 @@ func InitPeerFramework() {
 			tries++
 			if tries == 1 {
 			c := exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment")			
+			c.Stdout = ioutil.Discard
+			c.Stderr = c.Stdout
 			c.Start()
 			}
 			log.Println("Waiting for ipfs to start...")

@@ -27,12 +27,11 @@ reset:
 	rm -r $(HOME)/.rcoin/rcoin.db
 	rm $(HOME)/.rcoin/peers.txt
 dist-binaries-dir:
-	mkdir -p dist
+	mkdir -p dist/win32 dist/linux dist/mac
 dist-binaries: dist-binaries-dir dist-win32 dist-linux dist-mac
 dist-win32:
-	env GOOS=windows GOARCH=386 go build -i -o dist/rcoind.exe rcoin
+	env GOOS=windows GOARCH=386 go build -i -o dist/win32/rcoind.exe rcoin
 dist-linux:
-	env CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -i -o dist/rcoind-linux386 rcoin
+	env CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -i -o dist/linux/rcoind rcoin
 dist-mac:
-	env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -i -o dist/rcoind-macosx rcoin
-
+	env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -i -o dist/mac/rcoind rcoin

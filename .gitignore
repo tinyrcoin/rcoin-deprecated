@@ -3,3 +3,4 @@ dist/*
 *.wallet
 internal_work
 config.mk
+dist
