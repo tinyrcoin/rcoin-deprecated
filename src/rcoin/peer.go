@@ -76,16 +76,17 @@ func getMessage() ([]byte, error) {
 		return m, nil
 }
 func InitPeerFramework() {
-	tries := false
+	tries := 0
 	retr:
 	resp, err := http.Get(*ipfsapi + "sub?arg=" + ROOM + "&discover=true")
 	if err != nil {
-		if !tries {
-			tries = true
-			c := exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment")
-			c.Stdout = os.Stderr
-			c.Stderr = os.Stderr
+		if tries < 15 {
+			tries++
+			if tries == 1 {
+			c := exec.Command("ipfs", "daemon", "--init", "--enable-pubsub-experiment")			
 			c.Start()
+			}
+			log.Println("Waiting for ipfs to start...")
 			time.Sleep(1500*time.Millisecond)
 			goto retr
 		}
@@ -115,7 +116,10 @@ func InitPeerFramework() {
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
 					Broadcast(Command{To:cmd.From,Type:CMD_BLOCK,Block:*(chain.GetBlock(i))})
 				}
-				if cmd.A == 0 { Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height()}) }
+				if cmd.A == 0 {
+					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height()}) 
+					log.Println("peer: Syncing with %s (their blockchain height: %d, my height: %d)\n", cmd.From, cmd.RangeStart, chain.Height())
+				}
 			break
 			case CMD_BLOCK:
 				if !chain.Verify(&cmd.Block) {
