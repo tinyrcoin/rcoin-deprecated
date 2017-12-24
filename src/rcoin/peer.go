@@ -26,13 +26,14 @@ func (c *ConcurrentMap) Length() int {
 var br *bufio.Reader
 var brp *bufio.Reader
 var myid = uuid.NewV4().String()
-const ROOM = "rcoin-v2"
+const ROOM = "rcoin-v3"
 var ipfsapi = flag.String("ipfs", "http://127.0.0.1:5001/api/v0/pubsub/", "IPFS API Pubsub Endpoint")
 const (
 	CMD_BLOCK = 1
 	CMD_TX = 2
 	CMD_SYNC = 3
 )
+var haltmine = false
 type Command struct {
 	From string
 	To string
@@ -78,6 +79,7 @@ func getMessage() ([]byte, error) {
 }
 func InitPeerFramework() {
 	tries := 0
+	topheight := chain.Height()
 	os.Setenv("IPFS_PATH", *datadir + "/ipfs.db")
 	retr:
 	resp, err := http.Get(*ipfsapi + "sub?arg=" + ROOM + "&discover=true")
@@ -105,6 +107,7 @@ func InitPeerFramework() {
 	} ()
 	br = bufio.NewReader(resp.Body)
 	for {
+		haltmine = chain.Height() < topheight
 		data, err := getMessage()
 		if err != nil {
 			log.Println(err)
@@ -129,6 +132,7 @@ func InitPeerFramework() {
 				}
 				if cmd.RangeStart != chain.Height() {
 					log.Printf("peer: Syncing with %s (their blockchain height: %d, my height: %d)\n", cmd.From, cmd.RangeStart, chain.Height())
+					if cmd.RangeStart > topheight { topheight = cmd.RangeStart }
 				}
 			break
 			case CMD_BLOCK:

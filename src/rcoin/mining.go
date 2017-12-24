@@ -28,6 +28,7 @@ func Miner(threads int, payout []byte) {
 	log.Println("Starting miner")
 	log.Printf("Rewards go to %s", Address(payout[32:]).String())
 	for {
+		for haltmine { time.Sleep(time.Second) }
 		txs := GetTransactions()
 		if txs == nil { time.Sleep(time.Second); continue }
 		log.Printf("Working on block with %d transactions.", len(txs))
