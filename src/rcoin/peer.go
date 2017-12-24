@@ -81,6 +81,8 @@ func InitPeerFramework() {
 	tries := 0
 	var heights = map[string]int64{}
 	var ignore = map[string]bool{}
+	var hashes = map[string][]byte{}
+	tophash := []byte("")
 	topheight := chain.Height()
 	os.Setenv("IPFS_PATH", *datadir + "/ipfs.db")
 	retr:
@@ -114,6 +116,14 @@ func InitPeerFramework() {
 			if v > topheight { topheight = v }
 		}
 		haltmine = chain.Height() < topheight
+		tv := map[string]int{}
+		for _, v := range hashes {
+			tv[string(v)]++
+		}
+		th := 0
+		for k, v := range tv {
+			if v > th { th = v; tophash = []byte(k) }
+		}
 		ignore = map[string]bool{}
 		data, err := getMessage()
 		if err != nil {
@@ -148,7 +158,8 @@ func InitPeerFramework() {
 				if chain.HashToBlockNum(cmd.Block.Hash) != -1 {
 					break
 				}
-				if !chain.Verify(&cmd.Block) && heights[cmd.From] != topheight {
+				hashes[cmd.From] = cmd.Block.Hash
+				if !chain.Verify(&cmd.Block) && tophash == cmd.Block.Hash {
 					heights[cmd.From] = 0
 					ignore[cmd.From] = true
 					break
