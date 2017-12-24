@@ -119,7 +119,7 @@ func InitPeerFramework() {
 			log.Println(err)
 			log.Fatal("Lost connection with peers")
 		}
-		go func() {
+		func() {
 		var cmd Command
 		err = msgpack.Unmarshal(data, &cmd)
 		if err != nil {
@@ -130,8 +130,10 @@ func InitPeerFramework() {
 		if cmd.To != "" && cmd.To != myid {return }
 		switch cmd.Type {
 			case CMD_SYNC:
+				go func() {
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
 					Broadcast(Command{To:cmd.From,Type:CMD_BLOCK,Block:*(chain.GetBlock(i))})
+				}
 				}
 				if cmd.A == 0 {
 					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height(),A:1}) 
