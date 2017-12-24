@@ -134,7 +134,7 @@ func InitPeerFramework() {
 				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
 					Broadcast(Command{To:cmd.From,Type:CMD_BLOCK,Block:*(chain.GetBlock(i))})
 				}
-				}
+				} ()
 				if cmd.A == 0 {
 					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height(),A:1}) 
 				}
