@@ -124,6 +124,12 @@ func InitPeerFramework() {
 		for k, v := range tv {
 			if v > th { th = v; tophash = []byte(k) }
 		}
+		for k, v := range tv {
+			if string(k) != string(tophash) {
+				th--
+			}
+		}
+		if th < 0 { tophash = []byte("") }
 		ignore = map[string]bool{}
 		data, err := getMessage()
 		if err != nil {
