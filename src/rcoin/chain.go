@@ -71,7 +71,6 @@ func (c *Chain) GetDifficulty() (r int) {
 	return c.getDifficulty(c.Height())
 }
 func (c *Chain) getDifficulty(height int64) (r int) {
-	or := c.LastDifficulty
 	c.LastDifficulty = int(c.Height()*25)
 	r = c.LastDifficulty
 	return
