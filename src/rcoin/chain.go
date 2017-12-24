@@ -81,7 +81,7 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 		c.LastDifficulty = 10
 		return
 	}
-	c.LastDifficulty = int(c.Height()*100)
+	c.LastDifficulty = int(c.Height()*25)
 	return
 }
 func (c *Chain) HasTransaction(s Address) bool {
