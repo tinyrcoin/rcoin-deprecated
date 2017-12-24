@@ -8,7 +8,7 @@ import (
 var chain *Chain
 var tests = map[string]func(){}
 var cli = flag.String("cli", "", "Use the basic built in command line interface to access a `wallet`. Or enter 'create' as the wallet name to create a new one.")
-var datadir = flag.String("data", userhome() + "/.rcoin", "Data `path`")
+var datadir = flag.String("data", userhome() + "/.rcoin2", "Data `path`")
 var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
 var threads = flag.Int("minerthreads", 2, "Number of threads for mining")
