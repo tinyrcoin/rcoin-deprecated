@@ -133,11 +133,9 @@ func InitPeerFramework() {
 			break
 			case CMD_BLOCK:
 				if chain.HashToBlockNum(cmd.Block.Hash) != -1 {
-					log.Printf("Repeated block.")
 					break
 				}
 				if !chain.Verify(&cmd.Block) {
-					log.Printf("Bad block from %s", cmd.From)
 					break
 				}
 				log.Printf("New block height: %d", chain.Height()+1)
