@@ -159,7 +159,7 @@ func InitPeerFramework() {
 					break
 				}
 				hashes[cmd.From] = cmd.Block.Hash
-				if !chain.Verify(&cmd.Block) && tophash == cmd.Block.Hash {
+				if !chain.Verify(&cmd.Block) && string(tophash) == string(cmd.Block.Hash) {
 					heights[cmd.From] = 0
 					ignore[cmd.From] = true
 					break
