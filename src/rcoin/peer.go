@@ -110,7 +110,7 @@ func InitPeerFramework() {
 	br = bufio.NewReader(resp.Body)
 	for {
 		topheight = 0
-		for k, v := range heights {
+		for _, v := range heights {
 			if v > topheight { topheight = v }
 		}
 		haltmine = chain.Height() < topheight
