@@ -177,7 +177,7 @@ func InitPeerFramework() {
 				chain.AddBlock(&cmd.Block)
 			break
 			case CMD_TX:
-				if !cmd.TX.Verify() {
+				if !cmd.TX.Verify() || cmd.TX.From.String() == cmd.TX.To.String() {
 					log.Printf("Bad transaction from %s", cmd.From)
 				}
 				unconfirmed.Store(string(cmd.TX.Signature), &cmd.TX)
