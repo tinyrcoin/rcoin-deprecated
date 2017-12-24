@@ -26,7 +26,7 @@ func (c *ConcurrentMap) Length() int {
 var br *bufio.Reader
 var brp *bufio.Reader
 var myid = uuid.NewV4().String()
-const ROOM = "rcoin"
+const ROOM = "rcoin-v2"
 var ipfsapi = flag.String("ipfs", "http://127.0.0.1:5001/api/v0/pubsub/", "IPFS API Pubsub Endpoint")
 const (
 	CMD_BLOCK = 1

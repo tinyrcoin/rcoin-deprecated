@@ -83,11 +83,7 @@ func (c *Chain) getDifficulty(height int64) (r int) {
 	}
 	blk := c.GetBlock(height - 1)
 	blk2 := c.GetBlock(height - 2)
-	if (blk.Time-blk2.Time) < 60 {
-	c.LastDifficulty = int((height*4)*(100-max(100,blk.Time-blk2.Time)+1))
-	} else {
-	c.LastDifficulty = int((height*8)/(max(60,blk.Time-blk2.Time)+1))
-	}
+	c.LastDifficulty = c.Height()*100
 	return
 }
 func (c *Chain) HasTransaction(s Address) bool {
@@ -146,27 +142,30 @@ func (c *Chain) HashToBlockNum(hash []byte) int64 {
 }
 func (c *Chain) Verify(b *Block) bool {
 	if !b.Verify() {
+		println("bad block")
 		return false
 	}
 	if !b.VerifyPoW(c.GetDifficulty()) {
+		println("bad pow")
 		return false
 	}
-	if len(b.TX) > 90 {
-		return false
-	}
+	//if len(b.TX) > 90 {
+	//	return false
+	//}
 	if string(c.GetBlock(c.Height()-1).Hash) != string(b.LastHash) {
+		println("bad lasthash")
 		return false
 	}
-	if c.HashToBlockNum(b.LastHash) == -1 {
-		return false
-	}
+	//if c.HashToBlockNum(b.LastHash) == -1 {
+	//	return false
+	//}
 	for _, v := range b.TX {
 	if c.GetBalanceRaw(v.From) < v.Amount {
 		return false
 	}
-	if c.HasTransaction(v.Signature) {
-		return false
-	}
+	//if c.HasTransaction(v.Signature) {
+	//	return false
+	//}
 	if !v.Verify() { return false }
 	}
 	return true
