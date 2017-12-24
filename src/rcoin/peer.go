@@ -114,6 +114,7 @@ func InitPeerFramework() {
 			if v > topheight { topheight = v }
 		}
 		haltmine = chain.Height() < topheight
+		ignore = map[string]bool{}
 		data, err := getMessage()
 		if err != nil {
 			log.Println(err)
