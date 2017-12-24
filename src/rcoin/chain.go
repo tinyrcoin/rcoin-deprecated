@@ -150,13 +150,13 @@ func (c *Chain) Verify(b *Block) bool {
 	//if len(b.TX) > 90 {
 	//	return false
 	//}
-	if string(c.GetBlock(c.Height()-1).Hash) != string(b.LastHash) {
-		println("bad lasthash")
-		return false
-	}
-	//if c.HashToBlockNum(b.LastHash) == -1 {
+	//if string(c.GetBlock(c.Height()-1).Hash) != string(b.LastHash) {
+	//	println("bad lasthash")
 	//	return false
 	//}
+	if c.HashToBlockNum(b.LastHash) == -1 {
+		return false
+	}
 	for _, v := range b.TX {
 	if c.GetBalanceRaw(v.From) < v.Amount {
 		return false
