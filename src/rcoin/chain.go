@@ -72,16 +72,8 @@ func (c *Chain) GetDifficulty() (r int) {
 }
 func (c *Chain) getDifficulty(height int64) (r int) {
 	or := c.LastDifficulty
-	defer func() {
-		r = c.LastDifficulty
-		if recover() != nil { r = or }
-		if r < 1 { r = 10 } // ?!
-	} ()
-	if height < 3 {
-		c.LastDifficulty = 10
-		return
-	}
 	c.LastDifficulty = int(c.Height()*25)
+	r = c.LastDifficulty
 	return
 }
 func (c *Chain) HasTransaction(s Address) bool {
