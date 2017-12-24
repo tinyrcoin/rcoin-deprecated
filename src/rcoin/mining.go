@@ -61,10 +61,12 @@ func Miner(threads int, payout []byte) {
 		b.Time = time.Now().Unix()
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }
-		time.Sleep(time.Duration(mrand.Int63n(4000)+500)*time.Millisecond)
+		for i := 0; i < 5; i++ {
+		time.Sleep(time.Duration(mrand.Int63n(750)+500)*time.Millisecond)
 		if !chain.Verify(b) {
 			log.Println("Someone beat me to this block.")
-			continue
+			goto cont
+		}
 		}
 		PurgeOld()
 		log.Printf("Solved block in %d seconds.", b.Time - st)
