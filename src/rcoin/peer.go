@@ -124,7 +124,7 @@ func InitPeerFramework() {
 		for k, v := range tv {
 			if v > th { th = v; tophash = []byte(k) }
 		}
-		for k, v := range tv {
+		for k, _ := range tv {
 			if string(k) != string(tophash) {
 				th--
 			}
