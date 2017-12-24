@@ -152,9 +152,9 @@ func (c *Chain) Verify(b *Block) bool {
 	if c.GetBalanceRaw(v.From) < v.Amount {
 		return false
 	}
-	//if c.HasTransaction(v.Signature) {
-	//	return false
-	//}
+	if c.HasTransaction(v.Signature) {
+		return false
+	}
 	if !v.Verify() { return false }
 	}
 	return true
