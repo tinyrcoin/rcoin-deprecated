@@ -26,7 +26,7 @@ func (c *ConcurrentMap) Length() int {
 var br *bufio.Reader
 var brp *bufio.Reader
 var myid = uuid.NewV4().String()
-const ROOM = "rcoin-v3"
+const ROOM = "rcoin-v4"
 var ipfsapi = flag.String("ipfs", "http://127.0.0.1:5001/api/v0/pubsub/", "IPFS API Pubsub Endpoint")
 const (
 	CMD_BLOCK = 1
@@ -79,6 +79,8 @@ func getMessage() ([]byte, error) {
 }
 func InitPeerFramework() {
 	tries := 0
+	var heights = map[string]int64{}
+	var ignore = map[string]bool{}
 	topheight := chain.Height()
 	os.Setenv("IPFS_PATH", *datadir + "/ipfs.db")
 	retr:
@@ -107,6 +109,10 @@ func InitPeerFramework() {
 	} ()
 	br = bufio.NewReader(resp.Body)
 	for {
+		topheight = 0
+		for k, v := range heights {
+			if v > topheight { topheight = v }
+		}
 		haltmine = chain.Height() < topheight
 		data, err := getMessage()
 		if err != nil {
@@ -130,9 +136,9 @@ func InitPeerFramework() {
 				if cmd.A == 0 {
 					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height(),A:1}) 
 				}
-				if cmd.RangeStart != chain.Height() {
+				if cmd.RangeStart != chain.Height() && !ignore[cmd.From] {
 					log.Printf("peer: Syncing with %s (their blockchain height: %d, my height: %d)\n", cmd.From, cmd.RangeStart, chain.Height())
-					if cmd.RangeStart > topheight { topheight = cmd.RangeStart }
+					heights[cmd.From] = cmd.RangeStart
 				}
 			break
 			case CMD_BLOCK:
@@ -140,6 +146,8 @@ func InitPeerFramework() {
 					break
 				}
 				if !chain.Verify(&cmd.Block) {
+					heights[cmd.From] = 0
+					ignore[cmd.From] = true
 					break
 				}
 				log.Printf("New block height: %d", chain.Height()+1)
