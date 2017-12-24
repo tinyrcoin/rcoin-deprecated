@@ -148,7 +148,7 @@ func InitPeerFramework() {
 				if chain.HashToBlockNum(cmd.Block.Hash) != -1 {
 					break
 				}
-				if !chain.Verify(&cmd.Block) {
+				if !chain.Verify(&cmd.Block) && heights[cmd.From] != topheight {
 					heights[cmd.From] = 0
 					ignore[cmd.From] = true
 					break
