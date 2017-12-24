@@ -61,6 +61,7 @@ func Miner(threads int, payout []byte) {
 		b.Time = time.Now().Unix()
 		b.Sign(payout)
 		if !b.Verify() { panic("Block verification error") }
+		Broadcast(Command{Type:CMD_BLOCK,Block:*b})
 		for i := 0; i < 5; i++ {
 		time.Sleep(time.Duration(mrand.Int63n(750)+500)*time.Millisecond)
 		if !chain.Verify(b) {
@@ -70,7 +71,6 @@ func Miner(threads int, payout []byte) {
 		}
 		PurgeOld()
 		log.Printf("Solved block in %d seconds.", b.Time - st)
-		Broadcast(Command{Type:CMD_BLOCK,Block:*b})
 		chain.AddBlock(b)
 	}
 }
