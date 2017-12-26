@@ -22,10 +22,7 @@ if {[catch {
 	http::cleanup [http::geturl "$node/stat"]
 }]} {
 	append ::env(PATH) "$tcl_platform(pathSeparator)[pwd]"
-	if {[catch {set pq [open "|rcoind 2>@stderr" r+]}]} {
-		catch {set pq [open "[file dirname [info nameofexecutable]]/rcoind 2>@stderr" r+]}
-	}
-	fcopy $pq stderr -command null
+	exec rcoind >@stderr 2>@1 &
 }
 proc null args return
 proc jsonDecode {json {indexVar {}}} {
@@ -168,6 +165,8 @@ proc getwltinfo {} {
 	array set r [apicall "/wallet/stat?name=$::wltname"]
 	set ::wltaddr $r(address)
 	set wltinfo "Address: $r(address) (click to copy)\nBalance: $r(balance)"
+	array set r [apicall "/stat"]
+	append wltinfo "\nNetwork Difficulty: $r(difficulty)"
 	set ::wltinfo $wltinfo
 	array set r [apicall "/wallet/history?name=$::wltname"]
 	set wlthist2 {}
@@ -196,6 +195,12 @@ bind .login.name <Return> { .login.ok invoke }
 ttk::button .login.ok -text "Choose wallet" -command {
 	array set r [apicall "/wallet/stat?name=$wltname"]
 	if [info exists r(error)] {
+		if { [tk_messageBox -icon question -title "Notice" -message "No such wallet: $wltname. Create it?" -type yesno] eq "yes" } {
+			apicall "/wallet/create?name=$wltname"
+			array set r [apicall "/wallet/stat?name=$wltname"]
+		}
+	}
+	if [info exists r(error)] {
 		tk_messageBox -icon error -title "Error" -message "No such wallet: $wltname"
 		unset r(error)
 	} else {
@@ -208,6 +213,12 @@ pack .login.ok -expand yes
 pack .login -expand yes
 vwait ::_cont
 destroy .login
+menu .m
+. configure -menu .m
+menu .m.mine
+.m.mine add command -label "Start Mining" -command {apicall "/mining/start"}
+.m.mine add command -label "Stop Mining" -command {apicall "/mining/stop"}
+.m add cascade -menu .m.mine -label "Mining"
 ttk::notebook .tabs
 frame .tabs.main
 .tabs add .tabs.main -text "Overview"
