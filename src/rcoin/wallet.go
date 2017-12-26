@@ -2,7 +2,6 @@ package main
 
 import "io/ioutil"
 import "fmt"
-import "github.com/satori/go.uuid"
 import "golang.org/x/crypto/ed25519"
 type Wallet struct {
 	Public Address
@@ -11,20 +10,23 @@ type Wallet struct {
 func DecodeWalletAddress(s string) Address {
 	c := GetWallet(s)
 	if c != nil { return c.Public }
-	return DecodeAddress(s)
+	return StringToAddress(s)
 }
 func (w *Wallet) Balance(c *Chain) float64 {
-	return c.GetBalance(w.Public)
+	return AmountToFloat(c.GetBalance(w.Public))
 }
 func (w *Wallet) Send(c *Chain, a Address, amt float64, comment string) {
 	tx := NewTransaction()
-	tx.SetAmount(amt)
-	tx.Comment = uuid.NewV4().String() + "|" + comment
+	tx.Amount = FloatToAmount(amt)
 	tx.To = a
-	tx.Sign(w.Private)
+	tx.From = w.Public
+	tx.Sign(w)
 	if !tx.Verify() { return }
-	unconfirmed.Store(string(tx.Signature), tx)
+	c.AddTransaction(tx)
 	Broadcast(Command{Type:CMD_TX,TX:*tx})
+}
+func (w *Wallet) Sign(b []byte) []byte {
+	return ed25519.Sign(w.Private, b)
 }
 func GenerateWallet() (w *Wallet) {
 	w = new(Wallet)
@@ -43,8 +45,8 @@ func DecodeWallet(s string) (w *Wallet) {
 	var a string
 	var b string
 	fmt.Sscanf(s, "%s %s", &a, &b)
-	w.Public = DecodeAddress(a)
-	w.Private = []byte(DecodeAddress(b))
+	w.Public = StringToAddress(a)
+	w.Private = []byte(StringToAddress(b))
 	return
 }
 

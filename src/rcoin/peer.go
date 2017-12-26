@@ -24,9 +24,9 @@ func (c *ConcurrentMap) Length() int {
 	return o
 }
 var br *bufio.Reader
-var brp *bufio.Reader
+var br2 *bufio.Reader
 var myid = uuid.NewV4().String()
-const ROOM = "rcoin-v5"
+const ROOM = "rcoinplus-v1"
 var ipfsapi = flag.String("ipfs", "http://127.0.0.1:5001/api/v0/pubsub/", "IPFS API Pubsub Endpoint")
 const (
 	CMD_BLOCK = 1
@@ -37,7 +37,6 @@ var haltmine = false
 type Command struct {
 	From string
 	To string
-	Block Block
 	TX Transaction
 	RangeStart, RangeEnd int64
 	A int64	
@@ -47,6 +46,11 @@ func Broadcast(c Command) {
 	c.From = myid
 	b, _ := msgpack.Marshal(c)
 	sendMessage(string(b))
+}
+func BroadcastTo(m string, c Command) {
+	c.From = myid
+	b, _ := msgpack.Marshal(c)
+	sendMessageTo(m,string(b))
 }
 func decodeMessage(in string) []byte {
 	var m map[string]interface{}
@@ -65,9 +69,19 @@ func sendMessageTo(to string, msg string) {
 	if e != nil { return }
 	k.Body.Close()
 }
+var inmsg = make(chan string, 8)
+var inerr = make(chan error, 8)
+func rdrIn(r *bufio.Reader) {
+	for {
+	a, b := r.ReadString('\n')
+	inmsg <- a
+	inerr <- b
+	}
+}
 func getMessage() ([]byte, error) {
 	loop:
-		k, e := br.ReadString('\n')
+		k := <- inmsg
+		e := <- inerr
 		if e != nil {
 			return nil, e
 		}
@@ -79,14 +93,10 @@ func getMessage() ([]byte, error) {
 }
 func InitPeerFramework() {
 	tries := 0
-	var heights = map[string]int64{}
-	var ignore = map[string]bool{}
-	var hashes = map[string][]byte{}
-	tophash := []byte("")
-	topheight := chain.Height()
 	os.Setenv("IPFS_PATH", *datadir + "/ipfs.db")
 	retr:
 	resp, err := http.Get(*ipfsapi + "sub?arg=" + ROOM + "&discover=true")
+	resp2, err := http.Get(*ipfsapi + "sub?arg=" + myid + "&discover=true")
 	if err != nil {
 		if tries < 15 {
 			tries++
@@ -103,34 +113,12 @@ func InitPeerFramework() {
 		log.Println(err)
 		log.Fatal("Couldn't initialize peer framework")
 	}
-	go func() {
-		for {
-			Broadcast(Command{Type:CMD_SYNC,RangeStart:chain.Height()})
-			time.Sleep(10*time.Second)
-		}
-	} ()
+	Broadcast(Command{Type:CMD_SYNC,A:chain.Latest()})
 	br = bufio.NewReader(resp.Body)
+	br2 = bufio.NewReader(resp2.Body)
+	go rdrIn(br)
+	go rdrIn(br2)
 	for {
-		topheight = 0
-		for _, v := range heights {
-			if v > topheight { topheight = v }
-		}
-		haltmine = chain.Height() < topheight
-		tv := map[string]int{}
-		for _, v := range hashes {
-			tv[string(v)]++
-		}
-		th := 0
-		for k, v := range tv {
-			if v > th { th = v; tophash = []byte(k) }
-		}
-		for k, _ := range tv {
-			if string(k) != string(tophash) {
-				th--
-			}
-		}
-		if th < 0 { tophash = []byte("") }
-		ignore = map[string]bool{}
 		data, err := getMessage()
 		if err != nil {
 			log.Println(err)
@@ -143,44 +131,30 @@ func InitPeerFramework() {
 			log.Println("Got corrupt message")
 			return
 		}
-		if cmd.From == myid {return }
-		if cmd.To != "" && cmd.To != myid {return }
+		if cmd.From == myid {return}
+		if cmd.To != "" && cmd.To != myid {return}
 		switch cmd.Type {
 			case CMD_SYNC:
+				//
 				go func() {
-				for i := cmd.RangeStart; i != cmd.RangeEnd && i < chain.Height(); i++ {
-					Broadcast(Command{To:cmd.From,Type:CMD_BLOCK,Block:*(chain.GetBlock(i))})
+				id := cmd.From
+				subby, _ := http.Get(*ipfsapi + "sub?arg=" + id + "&discover=true")
+				iter := chain.DB.NewIterator(nil, nil)
+				for iter.Next() {
+					t := DecodeTransaction(iter.Value())
+					if t.Time > cmd.A {
+						BroadcastTo(id, Command{Type:CMD_TX,TX:*t})
+					}
 				}
+				subby.Body.Close()
 				} ()
-				if cmd.A == 0 {
-					Broadcast(Command{Type:CMD_SYNC,To:cmd.From,RangeStart:chain.Height(),A:1}) 
-				}
-				if cmd.RangeStart != chain.Height() && !ignore[cmd.From] {
-					log.Printf("peer: Syncing with %s (their blockchain height: %d, my height: %d)\n", cmd.From, cmd.RangeStart, chain.Height())
-					heights[cmd.From] = cmd.RangeStart
-				}
-			break
-			case CMD_BLOCK:
-				if chain.HashToBlockNum(cmd.Block.Hash) != -1 {
-					break
-				}
-				hashes[cmd.From] = cmd.Block.Hash
-				if !chain.Verify(&cmd.Block) && string(tophash) == string(cmd.Block.Hash) {
-					heights[cmd.From] = 0
-					ignore[cmd.From] = true
-					break
-				}
-				log.Printf("New block height: %d", chain.Height()+1)
-				for _, t := range cmd.Block.TX {
-					unconfirmed.Delete(string(t.Signature))
-				}
-				chain.AddBlock(&cmd.Block)
 			break
 			case CMD_TX:
+				if cmd.TX.Time == 0 { return }
 				if !cmd.TX.Verify() || cmd.TX.From.String() == cmd.TX.To.String() {
 					log.Printf("Bad transaction from %s", cmd.From)
 				}
-				unconfirmed.Store(string(cmd.TX.Signature), &cmd.TX)
+				chain.AddTransaction(&cmd.TX)
 			break
 		}
 		} ()

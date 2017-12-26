@@ -167,9 +167,7 @@ proc apicall {path} {
 proc getwltinfo {} {
 	array set r [apicall "/wallet/stat?name=$::wltname"]
 	set ::wltaddr $r(address)
-	set wltinfo "Address: $r(address) (click to copy)\nBalance: $r(balance)\n + NETWORK INFO + \n"
-	array set x [apicall "/stat"]
-	append wltinfo "Current mining difficulty: $x(difficulty)\nTotal blocks mined: $x(height)\nUnconfirmed transactions: $x(unconfirmed)"
+	set wltinfo "Address: $r(address) (click to copy)\nBalance: $r(balance)"
 	set ::wltinfo $wltinfo
 	array set r [apicall "/wallet/history?name=$::wltname"]
 	set wlthist2 {}

@@ -1,5 +1,7 @@
 package main
 import (
+	"fmt"
+	"time"
 	"strings"
 	"os"
 	"flag"
@@ -8,13 +10,14 @@ import (
 var chain *Chain
 var tests = map[string]func(){}
 var cli = flag.String("cli", "", "Use the basic built in command line interface to access a `wallet`. Or enter 'create' as the wallet name to create a new one.")
-var datadir = flag.String("data", userhome() + "/.rcoin3", "Data `path`")
+var datadir = flag.String("data", userhome() + "/.rcoinplus", "Data `path`")
 var dotest = flag.String("test", "", "Run a test `module`")
 var mining = flag.Bool("miner", true, "Enable mining")
 var threads = flag.Int("minerthreads", 2, "Number of threads for mining")
 var rpcport = flag.String("rpc", "127.0.0.1:3009", "RPC listen `port`")
 var pra = ""
 var peeraddr = &pra
+var pausemining = false
 var opts = flag.String("o", "", "Specify misc `options` separated by commas. Options: nonat, forceupnp, noirc.")
 func main() {
 	flag.Parse()
@@ -44,7 +47,33 @@ func main() {
 		PutWallet("default", w)
 		}
 		if w != nil {
-			go Miner(*threads, []byte(w.Private))
+			go func() {
+				lt := int64(10)
+				for {
+					if (300-(time.Now().Unix() - chain.LatestMinedOf(w.Public))) > 0 {
+					fmt.Printf("Waiting for network cooldown... (%d seconds)\n", 300 - (time.Now().Unix() - chain.LatestMinedOf(w.Public)))
+					fmt.Printf("\u2590                        \u258C\r")
+					for i := int64(0); i < ((300 - (time.Now().Unix() - chain.LatestMinedOf(w.Public))) / 12); i++ {
+						fmt.Printf("\u258C\b")
+						time.Sleep(6 * time.Second) // Mandatory network cooldown
+						fmt.Printf("\u2588")
+						time.Sleep(6 * time.Second) // Mandatory network cooldown
+					}
+					}
+					st := time.Now().Unix()	
+					for pausemining { time.Sleep(time.Second) }
+					t := NewTransaction()
+					t.To = w.Public
+					t.Amount = CalcReward(GetDifficulty())
+					c := false
+					t.ProofOfWork(GetDifficulty(), 2, &c)
+					t.Sign(w)
+					if !t.Verify() { continue }
+					chain.AddTransaction(t)					
+					Broadcast(Command{TX:*t,Type:CMD_TX})
+					lt = (lt + (time.Now().Unix()-st)) / 2
+				}
+			} ()
 		}
 	}
 	RPCServer(*rpcport)

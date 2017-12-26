@@ -21,26 +21,20 @@ func RPCServer(addr string) {
 		fmt.Sscanf(r.FormValue("limit"), "%d", &limit)
 		return Reply{"transactions":chain.History(addr,limit)}
 	})
-	http.HandleFunc("/block/info", __(func (r *Req) Reply {
-		blkid := int64(0)
-		fmt.Sscanf(r.FormValue("id"), "%d", &blkid)
-		if blkid < 0 || blkid > chain.Height() {
-			return Reply{"error":"no such block"}
-		}
-		blk := chain.GetBlock(blkid)
-		return Reply{"block":blk}
+	http.HandleFunc("/tx/info", __(func (r *Req) Reply {
+		blkid := r.FormValue("id")
+		blk := chain.GetTransaction(StringToAddress(blkid))
+		return Reply{"tx":blk}
 	}))
 	http.HandleFunc("/history", historyfunc)
 	http.HandleFunc("/stat", __(func (r *Req) Reply {
 		return Reply{
-			"difficulty": chain.GetDifficulty(),
-			"unconfirmed": unconfirmed.Length(),
-			"height": chain.Height(),
 			"peers": -1,
+			"difficulty": GetDifficulty(),
 		}
 	}))
 	http.HandleFunc("/balance", __(func (r *Req) Reply {
-		return Reply{"balance":chain.GetBalance(DecodeWalletAddress(r.FormValue("address")))}
+		return Reply{"balance":AmountToFloat(chain.GetBalance(DecodeWalletAddress(r.FormValue("address"))))}
 	}))
 	http.HandleFunc("/wallet/history", historyfunc)
 	http.HandleFunc("/wallet/send", __(func (r *Req) Reply {
@@ -70,6 +64,14 @@ func RPCServer(addr string) {
 		}
 		wal := GetWallet(r.FormValue("name"))
 		return Reply{"address":wal.Public.String(),"balance":wal.Balance(chain)}
+	}))
+	http.HandleFunc("/mining/stop", __(func (r *Req) Reply {
+		pausemining = true
+		return Reply{"mining":false}
+	}))
+	http.HandleFunc("/mining/start", __(func (r *Req) Reply {
+		pausemining = false
+		return Reply{"mining":true}
 	}))
 	http.ListenAndServe(addr, nil)
 }

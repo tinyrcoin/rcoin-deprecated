@@ -1,6 +1,5 @@
 GOPATH2 := $(shell echo $$GOPATH)
-GOPATH := $(GOPATH2):$(shell pwd)
-export GOPATH
+export GOPATH = $(GOPATH2):$(shell pwd)
 -include config.mk
 #
 CONFIRM = n
@@ -27,7 +26,7 @@ reset:
 	rm -r $(HOME)/.rcoin/rcoin.db
 	rm $(HOME)/.rcoin/peers.txt
 dist-binaries-dir:
-	mkdir -p dist/win32 dist/linux dist/mac
+	mkdir -p dist/win32 dist/linux dist/mac dist/freebsd
 dist-binaries: dist-binaries-dir dist-win32 dist-linux dist-mac
 dist-win32:
 	env GOOS=windows GOARCH=386 go build -i -o dist/win32/rcoind.exe rcoin
@@ -35,3 +34,5 @@ dist-linux:
 	env CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -i -o dist/linux/rcoind rcoin
 dist-mac:
 	env CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -i -o dist/mac/rcoind rcoin
+dist-freebsd:
+	env CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -i -o dist/freebsd/rcoind rcoin
