@@ -1,5 +1,5 @@
 package main
-
+import "time"
 import "io/ioutil"
 import "fmt"
 import "golang.org/x/crypto/ed25519"
@@ -20,6 +20,7 @@ func (w *Wallet) Send(c *Chain, a Address, amt float64, comment string) {
 	tx.Amount = FloatToAmount(amt)
 	tx.To = a
 	tx.From = w.Public
+	tx.Time = time.Now().Unix()
 	tx.Sign(w)
 	if !tx.Verify() { return }
 	c.AddTransaction(tx)

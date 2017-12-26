@@ -50,8 +50,9 @@ func main() {
 			go func() {
 				lt := int64(10)
 				for {
+					fmt.Printf("Last mined block at %s\n", time.Unix(chain.LatestMinedOf(w.Public), 0).String())
 					if (300-(time.Now().Unix() - chain.LatestMinedOf(w.Public))) > 0 {
-					fmt.Printf("Waiting for network cooldown... (%d seconds)\n", 300 - (time.Now().Unix() - chain.LatestMinedOf(w.Public)))
+					fmt.Printf("Waiting for mandatory cooldown... (%d seconds)\n", 300 - (time.Now().Unix() - chain.LatestMinedOf(w.Public)))
 					fmt.Printf("\u2590                        \u258C\r")
 					for i := int64(0); i < ((300 - (time.Now().Unix() - chain.LatestMinedOf(w.Public))) / 12); i++ {
 						fmt.Printf("\u258C\b")
@@ -67,6 +68,7 @@ func main() {
 					t.Amount = CalcReward(GetDifficulty())
 					c := false
 					t.ProofOfWork(GetDifficulty(), 2, &c)
+					t.Time = time.Now().Unix()
 					t.Sign(w)
 					if !t.Verify() { continue }
 					chain.AddTransaction(t)					

@@ -190,7 +190,7 @@ frame .login -width 256 -height 96 -bd 2 -relief raised
 pack propagate .login 0
 label .login.label -text "Wallet name:"
 set wltname "default"
-set wlts [string map [list .wallet "" "$env(HOME)/.rcoin/" ""] [glob -nocomplain -d "$env(HOME)/.rcoin" *.wallet]]
+set wlts [string map [list .wallet "" "$env(HOME)/.rcoinplus/" ""] [glob -nocomplain -d "$env(HOME)/.rcoinplus" *.wallet]]
 ttk::combobox .login.name -values $wlts -textvariable wltname
 bind .login.name <Return> { .login.ok invoke }
 ttk::button .login.ok -text "Choose wallet" -command {

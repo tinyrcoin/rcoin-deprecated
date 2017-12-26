@@ -77,12 +77,9 @@ func CalcReward(diff int) int64 {
 	return ((25550)-int64(diff))*100
 }
 func (t *Transaction) Verify() bool {
-	if (t.Time/8640) < ((chain.Latest()-4320)/8640) {
+	if (t.Time/8640) < ((chain.Latest()-4320)/8640) && t.Nonce > 0 {
 		return false
 	}
-	if t.From.String() == t.To.String() || t.Amount < chain.GetBalance(t.From) || t.Amount == 0 {
-		return false
-	}	
 	if t.Nonce > 0 {
 		if (t.Time - chain.LatestMinedOf(t.To)) < 290 {
 			return false
@@ -91,6 +88,9 @@ func (t *Transaction) Verify() bool {
 		if !t.VerifyPoW(GetOldDifficulty(t.Time)) { return false }
 		return true
 	}
+	if t.From.String() == t.To.String() || t.Amount > chain.GetBalance(t.From) || t.Amount == 0 {
+		return false
+	}	
 	osig := t.Signature
 	t.Signature = []byte{}
 	ret := ed25519.Verify([]byte(t.From), t.Encode(), osig)
@@ -198,7 +198,9 @@ func (c *Chain) History(a Address, num int) []Transaction {
 	iter := c.DB.NewIterator(nil, nil)
 	for iter.Next() {
 		t := DecodeTransaction(iter.Value())
-		bal = append(bal, *t)
+		if t.From.String() == a.String() || t.To.String() == a.String() {
+			bal = append(bal, *t)
+		}
 	}
 	iter.Release()
 	return bal
