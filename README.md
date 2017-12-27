@@ -24,3 +24,18 @@ TODO:
 
 * Golang 1.9+
 * IPFS (running with --enable-pubsub-experiment)
+
+# Starting RCoin
+
+If you have not initialized ipfs
+```
+>ipfs init
+```
+
+Start RCoin
+```
+>ipfs daemon --enable-pubsub-experiment
+>rcoind
+```
+
+You can now open the tkwallet
